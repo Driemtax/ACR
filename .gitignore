@@ -11,13 +11,15 @@ compile_commands.json
 CTestTestfile.cmake
 _deps/
 CMakeUserPresets.json
-cmake-build-*/
+cmake-build/
 build/
 .cache/
 
 # --- JUCE / Projucer ---
 # Der Builds-Ordner wird meist vom Projucer oder Build-Systemen generiert und muss nicht ins Git
 Builds/
+JUCE/
+JuceLibraryCode/
 
 # --- IDEs und Editoren ---
 .vscode/
