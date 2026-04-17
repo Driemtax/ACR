@@ -17,4 +17,4 @@ if %errorlevel% neq 0 (
 
 echo.
 echo === 3. Starte die Anwendung ===
-cmake-build\Test_BA_artefacts\Debug\Test_BA.exe
+cmake-build\ACR_artefacts\Debug\ACR.exe
