@@ -27,6 +27,10 @@ target_sources(ACR PRIVATE
     Source/Main.cpp
     Source/MainComponent.cpp
     Source/MainComponent.h
+    Source/Audio/AudioEngine.h
+    Source/Audio/AudioEngine.cpp
+    Source/GUI/WaveformDisplay.h
+    Source/GUI/WaveformDisplay.cpp
 )
 
 # ==============================================================================
