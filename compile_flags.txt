@@ -1,5 +1,5 @@
 -xc++
 -std=c++17
--I./cmake-build/Test_BA_artefacts/JuceLibraryCode
+-I./cmake-build/ACR_artefacts/JuceLibraryCode
 -I./JUCE/modules
 -DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1
