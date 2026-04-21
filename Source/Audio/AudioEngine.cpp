@@ -5,6 +5,9 @@
 #include "juce_core/juce_core.h"
 #include <memory>
 
+const String filename = "recording.wav";
+const String appDirName = "ACR_App";
+
 AudioEngine::AudioEngine()
 {
     formatManager.registerBasicFormats();
@@ -28,8 +31,7 @@ AudioEngine::AudioEngine()
     // register callback for audio data
     deviceManager.addAudioCallback (this);
 
-    auto file = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
-        .getChildFile("Test_JUCE_Aufnahme.wav");
+    auto file = getAudioFilePath();
 
     if (file.existsAsFile()) {
         thumbnail.setSource(new juce::FileInputSource(file));
@@ -86,8 +88,7 @@ void AudioEngine::startRecording()
 {
     if (state != TransportState::Stopped) return;
 
-    auto file = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
-                    .getChildFile("Test_JUCE_Aufnahme.wav");
+    auto file = getAudioFilePath();
     file.deleteFile();
 
     if (auto fileStream = std::unique_ptr<juce::FileOutputStream> (file.createOutputStream())) {
@@ -133,8 +134,7 @@ void AudioEngine::startPlayback()
 {
     if (state != TransportState::Stopped) return;
 
-    auto file = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
-        .getChildFile("Test_JUCE_Aufnahme.wav");
+    auto file = getAudioFilePath();
 
     if (file.existsAsFile()) {
         auto* reader = formatManager.createReaderFor(file);
@@ -161,4 +161,18 @@ void AudioEngine::startPlayback()
 
 double AudioEngine::getLengthInSeconds() const {
     return thumbnail.getTotalLength();
+}
+
+
+// Gets the file for recording and playback. The filepath is defined beforehand using constants
+juce::File AudioEngine::getAudioFilePath() const {
+    auto docsDir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory);
+    auto appDir = docsDir.getChildFile(appDirName);
+
+    if (!appDir.exists()) {
+        appDir.createDirectory();
+    }
+
+
+    return appDir.getChildFile(filename);
 }

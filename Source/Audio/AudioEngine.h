@@ -3,6 +3,7 @@
 #include "juce_audio_devices/juce_audio_devices.h"
 #include "juce_audio_formats/juce_audio_formats.h"
 #include "juce_audio_utils/juce_audio_utils.h"
+#include "juce_core/juce_core.h"
 #include <JuceHeader.h>
 #include <atomic>
 #include <memory>
@@ -20,7 +21,6 @@ public:
     ~AudioEngine() override;
 
     // --- AudioIODeviceCallback Overrides ---
-    // Diese ersetzen prepareToPlay, getNextAudioBlock und releaseResources
     void audioDeviceAboutToStart (juce::AudioIODevice* device) override;
     void audioDeviceStopped() override;
     void audioDeviceIOCallbackWithContext (const float* const* inputChannelData, int numInputChannels,
@@ -60,6 +60,9 @@ private:
     juce::AudioThumbnailCache thumbnailCache { 1 };
     juce::AudioThumbnail thumbnail { 512, formatManager, thumbnailCache };
     juce::int64 samplesRecorded = 0;
+
+    // Util functions
+    juce::File getAudioFilePath() const;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioEngine)
 };
