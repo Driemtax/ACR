@@ -5,7 +5,6 @@
 #include "juce_core/juce_core.h"
 #include <memory>
 
-const String filename = "recording.wav";
 const String appDirName = "ACR_App";
 
 AudioEngine::AudioEngine()
@@ -31,10 +30,10 @@ AudioEngine::AudioEngine()
     // register callback for audio data
     deviceManager.addAudioCallback (this);
 
-    auto file = getAudioFilePath();
+    currentFile = getDefaultRecordingFile();
 
-    if (file.existsAsFile()) {
-        thumbnail.setSource(new juce::FileInputSource(file));
+    if (currentFile.existsAsFile()) {
+        thumbnail.setSource(new juce::FileInputSource(currentFile));
     }
 }
 
@@ -88,10 +87,10 @@ void AudioEngine::startRecording()
 {
     if (state != TransportState::Stopped) return;
 
-    auto file = getAudioFilePath();
-    file.deleteFile();
+    currentFile = getDefaultRecordingFile();
+    currentFile.deleteFile();
 
-    if (auto fileStream = std::unique_ptr<juce::FileOutputStream> (file.createOutputStream())) {
+    if (auto fileStream = std::unique_ptr<juce::FileOutputStream> (currentFile.createOutputStream())) {
         juce::WavAudioFormat wavFormat;
         if (auto* device = deviceManager.getCurrentAudioDevice()) {
             double sampleRate = device->getCurrentSampleRate();
@@ -150,6 +149,12 @@ void AudioEngine::startPlayback()
             // stream data to transportSource
             transportSource.setSource(readerSource.get(), 0, nullptr, reader->sampleRate);
             transportSource.setPosition(0.0); // start from beginning!
+
+            // recordings are quit quiet so we add some gain
+            if (file == getDefaultRecordingFile()) {
+                transportSource.setGain(6.0f);
+            }
+
             transportSource.start();
 
             state.store(TransportState::Playing);
@@ -165,7 +170,7 @@ double AudioEngine::getLengthInSeconds() const {
 
 
 // Gets the file for recording and playback. The filepath is defined beforehand using constants
-juce::File AudioEngine::getAudioFilePath() const {
+juce::File AudioEngine::getDefaultRecordingFile() const {
     auto docsDir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory);
     auto appDir = docsDir.getChildFile(appDirName);
 
@@ -174,5 +179,20 @@ juce::File AudioEngine::getAudioFilePath() const {
     }
 
 
-    return appDir.getChildFile(filename);
+    return appDir.getChildFile("recording.wav");
+}
+
+juce::File AudioEngine::getAudioFilePath() const {
+    return currentFile;
+}
+
+void AudioEngine::setFilename(juce::String name) {
+    filename = name;
+}
+
+void AudioEngine::setAudioFile(const juce::File& file) {
+    if (file.existsAsFile()) {
+        currentFile = file;
+        thumbnail.setSource(new juce::FileInputSource(currentFile));
+    }
 }

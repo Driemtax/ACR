@@ -9,7 +9,7 @@ project(ACR VERSION 0.0.1)
 # Falls JUCE im selben Ordner wie Test_BA liegt (z.B. C:/Users/a930084/dev/JUCE),
 # dann wäre der Pfad "../JUCE".
 # ==============================================================================
-add_subdirectory("C:/Users/a930084/dev/tets/JUCE" JUCE)
+add_subdirectory("C:/dev/ACR/JUCE" JUCE)
 
 # ==============================================================================
 # 2. Die ausführbare GUI-Anwendung erstellen
@@ -31,6 +31,10 @@ target_sources(ACR PRIVATE
     Source/Audio/AudioEngine.cpp
     Source/GUI/WaveformDisplay.h
     Source/GUI/WaveformDisplay.cpp
+    Source/GUI/SpectogramDisplay.h
+    Source/GUI/SpectogramDisplay.cpp
+    Source/DSP/ChordAnalyzer.h
+    Source/DSP/ChordAnalyzer.cpp
 )
 
 # ==============================================================================
@@ -54,6 +58,7 @@ target_link_libraries(ACR PRIVATE
     juce::juce_audio_utils
     juce::juce_core
     juce::juce_data_structures
+    juce::juce_dsp
     juce::juce_events
     juce::juce_graphics
     juce::juce_gui_basics

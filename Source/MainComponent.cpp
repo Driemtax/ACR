@@ -1,13 +1,20 @@
 #include "MainComponent.h"
 #include "Audio/AudioEngine.h"
+#include "juce_audio_basics/juce_audio_basics.h"
+#include "juce_audio_formats/juce_audio_formats.h"
 #include "juce_audio_utils/juce_audio_utils.h"
 #include "juce_core/juce_core.h"
+#include "juce_core/system/juce_PlatformDefs.h"
 #include "juce_events/juce_events.h"
 #include "juce_graphics/juce_graphics.h"
 #include "juce_gui_basics/juce_gui_basics.h"
+#include <iostream>
+#include <memory>
+#include <ostream>
+#include <thread>
 
 const int WIDTH = 800;
-const int HEIGHT = 600;
+const int HEIGHT = 800;
 
 //==============================================================================
 // Parameters of audioSetupComp: minInput, maxInput, minOutput, maxOutput, showMidiIn, showMidiOut, showStereo, hideAdvancedOptions
@@ -21,8 +28,21 @@ MainComponent::MainComponent() : audioSetupComp(audioEngine.getDeviceManager()
     addAndMakeVisible(recordButton);
     addAndMakeVisible(playButton);
 
-    // add waveform component
+    // waveform component
     addAndMakeVisible(waveformDisplay);
+
+    // spectogram components
+    addAndMakeVisible(fileToAnalyze);
+    addAndMakeVisible(analyzeButton);
+    addAndMakeVisible(loadingText);
+    addAndMakeVisible(spectogramDisplay);
+
+    // File selection
+    addAndMakeVisible(fileButton);
+
+    loadingText.setJustificationType(juce::Justification::centred);
+    loadingText.setColour(juce::Label::textColourId, juce::Colours::orange);
+    loadingText.setVisible(false);
 
     // click functions for buttons
     recordButton.onClick = [this] {
@@ -43,6 +63,35 @@ MainComponent::MainComponent() : audioSetupComp(audioEngine.getDeviceManager()
       updateTransportState();
     };
 
+    analyzeButton.onClick = [this] {
+        analyzeButton.setEnabled(false);
+        loadingText.setVisible(true);
+        spectogramDisplay.setVisible(false);
+
+        std::thread([this]() {
+            runAnalysisOffline();
+        }).detach();
+    };
+
+    fileButton.onClick = [this] {
+        fileChooser = std::make_unique<juce::FileChooser>(
+            "Select a WAV file",
+            juce::File::getSpecialLocation(juce::File::userMusicDirectory),
+            "*.wav"
+        );
+
+        auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
+
+        fileChooser->launchAsync(chooserFlags, [this](const juce::FileChooser& fc) {
+           auto file = fc.getResult();
+          if (file.existsAsFile()) {
+              audioEngine.setAudioFile(file);
+              updateTransportState();
+          }
+        });
+    };
+
+    updateTransportState();
     audioEngine.getTransportSource().addChangeListener(this);
 
     // Make sure you set the size of the component after
@@ -78,6 +127,15 @@ void MainComponent::updateTransportState()
         playButton.setButtonText("Play");
         playButton.setColour(juce::TextButton::buttonColourId, getLookAndFeel().findColour(juce::TextButton::buttonColourId));
         playButton.setEnabled(true);
+    }
+
+    auto file = audioEngine.getAudioFilePath();
+    if (file.existsAsFile()) {
+        fileToAnalyze.setText("File: " + file.getFileName(), juce::dontSendNotification);
+        analyzeButton.setEnabled(state == AudioEngine::TransportState::Stopped);
+    } else {
+        fileToAnalyze.setText("No file recorded yet.", juce::dontSendNotification);
+        analyzeButton.setEnabled(false);
     }
 }
 
@@ -118,4 +176,43 @@ void MainComponent::resized()
 
     // waveform component
     waveformDisplay.setBounds(10, 220, getWidth() - 20, 150);
+
+    fileToAnalyze.setBounds(270, 380, 200, 40);
+    analyzeButton.setBounds(480, 380, 120, 40);
+    loadingText.setBounds(270, 430, 180, 40);
+    spectogramDisplay.setBounds(10, 430, getWidth() - 20, 350);
+
+    fileButton.setBounds(620, 380, 120, 40);
+}
+
+void MainComponent::runAnalysisOffline() {
+    // TODO: Store the full audio Buffer in AudioEngine for playback and this function.
+   auto file = audioEngine.getAudioFilePath();
+
+   juce::AudioFormatManager formatManager;
+   formatManager.registerBasicFormats();
+
+   std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(file));
+   if (reader == nullptr) return;
+
+   juce::AudioBuffer<float> buffer ((int)reader->numChannels, (int)reader->lengthInSamples);
+   reader->read(&buffer, 0, (int)reader->lengthInSamples, 0, true, true);
+
+   auto spectogramData = chordAnalyzer.processFullFile(buffer, reader->sampleRate);
+
+   std::cout << "=== SPEKTOGRAMM BERECHNET ===" << std::endl;
+   std:: cout << "Anzahl Frames (Zeit): " << spectogramData.size() << std::endl;
+   if (!spectogramData.empty()) {
+       std::cout << "Anzahl Bins (Frequenz): " << spectogramData[0].size() << std::endl;
+   }
+
+   // This functions runs in a seperate thread and notifys the calling thread (GUI-Thread) when it has finished.
+   // Then this function will be executed.
+   juce::MessageManager::callAsync([this, data = std::move(spectogramData)]() {
+       loadingText.setVisible(false);
+       analyzeButton.setEnabled(true);
+
+       spectogramDisplay.setSpectogramData(data);
+       spectogramDisplay.setVisible(true);
+   });
 }

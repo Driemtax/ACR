@@ -1,10 +1,13 @@
 #pragma once
 
+#include "GUI/SpectogramDisplay.h"
+#include "DSP/ChordAnalyzer.h"
 #include "juce_audio_utils/juce_audio_utils.h"
 #include "juce_core/juce_core.h"
 #include "juce_events/juce_events.h"
 #include "juce_gui_basics/juce_gui_basics.h"
 #include <JuceHeader.h>
+#include <memory>
 #include "Audio/AudioEngine.h"
 #include "GUI/WaveformDisplay.h"
 
@@ -40,7 +43,20 @@ private:
     // Waveform component
     WaveformDisplay waveformDisplay { audioEngine };
 
+    // Spectogram
+    juce::Label fileToAnalyze;
+    juce::TextButton analyzeButton { "Analyze" };
+    // loading animation for spectogram
+    juce::Label loadingText { "Loading", "Analyse spectogram..." };
+    SpectogramDisplay spectogramDisplay;
+    ChordAnalyzer chordAnalyzer;
+
+    // File selection
+    juce::TextButton fileButton { "Open File " };
+    std::unique_ptr<juce::FileChooser> fileChooser;
+
     void updateTransportState();
+    void runAnalysisOffline();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

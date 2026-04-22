@@ -41,6 +41,12 @@ public:
     juce::AudioThumbnail& getThumbnail() { return thumbnail; }
     double getLengthInSeconds() const;
 
+    juce::File getDefaultRecordingFile() const;
+    juce::File getAudioFilePath() const;
+
+    void setFilename(juce::String name);
+    void setAudioFile(const juce::File& file);
+
 private:
     juce::AudioDeviceManager deviceManager;
     std::atomic<TransportState> state { TransportState::Stopped };
@@ -61,8 +67,9 @@ private:
     juce::AudioThumbnail thumbnail { 512, formatManager, thumbnailCache };
     juce::int64 samplesRecorded = 0;
 
-    // Util functions
-    juce::File getAudioFilePath() const;
+    // File
+    juce::String filename = "recording.wav";
+    juce::File currentFile;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioEngine)
 };

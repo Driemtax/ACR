@@ -9,6 +9,11 @@
 #include <JuceHeader.h>
 #include "MainComponent.h"
 
+#if JUCE_WINDOWS
+    #include <windows.h>
+    #include <stdio.h>
+#endif
+
 //==============================================================================
 class Test_BAApplication  : public juce::JUCEApplication
 {
@@ -24,6 +29,13 @@ public:
     void initialise (const juce::String& commandLine) override
     {
         // This method is where you should put your application's initialisation code..
+
+        #if JUCE_WINDOWS && JUCE_DEBUG
+            AllocConsole();
+            FILE* dummy;
+            freopen_s(&dummy, "CONOUT$", "w", stdout);
+            freopen_s(&dummy, "CONOUT$", "w", stderr);
+        #endif
 
         mainWindow.reset (new MainWindow (getApplicationName()));
     }
