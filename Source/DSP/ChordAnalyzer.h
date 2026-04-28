@@ -16,8 +16,6 @@ class ChordAnalyzer
   // 2D-Array with spectogram for full audio data
   std::vector<std::vector<float>> processFullFile(const juce::AudioBuffer<float>& fullAudioFile, double sampleRate);
 
-  // TODO: functions for GUI to retrieve spectogram
-
   private:
   int fftOrder;
   int fftSize;

@@ -29,6 +29,7 @@ ChordAnalyzer::ChordAnalyzer(int order)
         const int totalSamples = workingBuffer.getNumSamples();
 
         // 2. Short-Time Fourier Transform with Hop Size 50%
+        // TODO: set to 512 (see literature)
         int hopSize = fftSize / 2;
 
         // Hopping prevents samples to get "lost" due to the windowing function
@@ -38,8 +39,6 @@ ChordAnalyzer::ChordAnalyzer(int order)
             std::vector<float> frameMagnitudes = processSingleFrame(monoData + startIdx);
             spectogram.push_back(std::move(frameMagnitudes));
         }
-
-        juce::Logger::writeToLog("Hallo!");
 
         return spectogram;
     }
