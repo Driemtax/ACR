@@ -7,11 +7,11 @@
 #include <juce_dsp/juce_dsp.h>
 #include <vector>
 
-class ChordAnalyzer
+class SpectogramAnalyzer
 {
   public:
-  ChordAnalyzer(int fftOrder = 11);
-  ~ChordAnalyzer() = default;
+  SpectogramAnalyzer(int fftOrder = 11);
+  ~SpectogramAnalyzer() = default;
 
   // 2D-Array with spectogram for full audio data
   std::vector<std::vector<float>> processFullFile(const juce::AudioBuffer<float>& fullAudioFile, double sampleRate);
@@ -27,5 +27,5 @@ class ChordAnalyzer
   void normalizeVolume(juce::AudioBuffer<float>& bufferToNormalize);
   std::vector<float> processSingleFrame(const float* frameData);
 
-  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChordAnalyzer);
+  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SpectogramAnalyzer);
 };

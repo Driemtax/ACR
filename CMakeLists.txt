@@ -33,8 +33,10 @@ target_sources(ACR PRIVATE
     Source/GUI/WaveformDisplay.cpp
     Source/GUI/SpectogramDisplay.h
     Source/GUI/SpectogramDisplay.cpp
-    Source/DSP/ChordAnalyzer.h
-    Source/DSP/ChordAnalyzer.cpp
+    Source/DSP/SpectogramAnalyzer.h
+    Source/DSP/SpectogramAnalyzer.cpp
+    Source/DSP/ChromaAnalyzer.h
+    Source/DSP/ChromaAnalyzer.cpp
 )
 
 # ==============================================================================

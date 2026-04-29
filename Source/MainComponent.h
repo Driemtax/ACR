@@ -1,7 +1,7 @@
 #pragma once
 
 #include "GUI/SpectogramDisplay.h"
-#include "DSP/ChordAnalyzer.h"
+#include "DSP/SpectogramAnalyzer.h"
 #include "juce_audio_utils/juce_audio_utils.h"
 #include "juce_core/juce_core.h"
 #include "juce_events/juce_events.h"
@@ -49,7 +49,7 @@ private:
     // loading animation for spectogram
     juce::Label loadingText { "Loading", "Analyse spectogram..." };
     SpectogramDisplay spectogramDisplay;
-    ChordAnalyzer chordAnalyzer;
+    SpectogramAnalyzer spectogramAnalyzer;
 
     // File selection
     juce::TextButton fileButton { "Open File " };

@@ -186,7 +186,6 @@ void MainComponent::resized()
 }
 
 void MainComponent::runAnalysisOffline() {
-    // TODO: Store the full audio Buffer in AudioEngine for playback and this function.
    auto file = audioEngine.getAudioFilePath();
 
    juce::AudioFormatManager formatManager;
@@ -198,13 +197,15 @@ void MainComponent::runAnalysisOffline() {
    juce::AudioBuffer<float> buffer ((int)reader->numChannels, (int)reader->lengthInSamples);
    reader->read(&buffer, 0, (int)reader->lengthInSamples, 0, true, true);
 
-   auto spectogramData = chordAnalyzer.processFullFile(buffer, reader->sampleRate);
+   auto spectogramData = spectogramAnalyzer.processFullFile(buffer, reader->sampleRate);
 
    std::cout << "=== SPEKTOGRAMM BERECHNET ===" << std::endl;
    std:: cout << "Anzahl Frames (Zeit): " << spectogramData.size() << std::endl;
    if (!spectogramData.empty()) {
        std::cout << "Anzahl Bins (Frequenz): " << spectogramData[0].size() << std::endl;
    }
+
+   // TODO: Process spectogram using HPCP here to produce chromagram.
 
    // This functions runs in a seperate thread and notifys the calling thread (GUI-Thread) when it has finished.
    // Then this function will be executed.
