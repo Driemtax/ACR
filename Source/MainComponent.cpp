@@ -1,10 +1,10 @@
 #include "MainComponent.h"
 #include "Audio/AudioEngine.h"
+#include "DSP/ChromaAnalyzer.h"
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_audio_formats/juce_audio_formats.h"
 #include "juce_audio_utils/juce_audio_utils.h"
 #include "juce_core/juce_core.h"
-#include "juce_core/system/juce_PlatformDefs.h"
 #include "juce_events/juce_events.h"
 #include "juce_graphics/juce_graphics.h"
 #include "juce_gui_basics/juce_gui_basics.h"
@@ -206,6 +206,22 @@ void MainComponent::runAnalysisOffline() {
    }
 
    // TODO: Process spectogram using HPCP here to produce chromagram.
+   int numFrames = (int)spectogramData.size();
+   int numBins = spectogramData.empty() ? 0 : (int)spectogramData[0].size();
+
+   juce::AudioBuffer<float> spectoBuffer(numFrames, numBins);
+
+   for (int i = 0; i < numFrames; i++) {
+       juce::FloatVectorOperations::copy(spectoBuffer.getWritePointer(i),
+           spectogramData[i].data(), numBins);
+   }
+
+   float fftSize = (float)(numBins * 2);
+   ChromaAnalyzer chromaAnalyzer = ChromaAnalyzer(reader->sampleRate, fftSize);
+   int chromaBins = chromaAnalyzer.getChromaBinSize();
+
+   auto chromagram = juce::AudioBuffer<float>(numFrames,chromaBins);
+   chromaAnalyzer.processFullSpectogram(spectoBuffer, chromagram);
 
    // This functions runs in a seperate thread and notifys the calling thread (GUI-Thread) when it has finished.
    // Then this function will be executed.

@@ -10,7 +10,7 @@
 class SpectogramAnalyzer
 {
   public:
-  SpectogramAnalyzer(int fftOrder = 11);
+  SpectogramAnalyzer(int fftOrder = 12);
   ~SpectogramAnalyzer() = default;
 
   // 2D-Array with spectogram for full audio data

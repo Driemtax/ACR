@@ -1,5 +1,6 @@
 #pragma once
 
+#include "DSP/ChromaAnalyzer.h"
 #include "GUI/SpectogramDisplay.h"
 #include "DSP/SpectogramAnalyzer.h"
 #include "juce_audio_utils/juce_audio_utils.h"
@@ -50,6 +51,8 @@ private:
     juce::Label loadingText { "Loading", "Analyse spectogram..." };
     SpectogramDisplay spectogramDisplay;
     SpectogramAnalyzer spectogramAnalyzer;
+
+    // Chromagram
 
     // File selection
     juce::TextButton fileButton { "Open File " };

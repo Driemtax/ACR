@@ -29,7 +29,7 @@ SpectogramAnalyzer::SpectogramAnalyzer(int order)
 
         // 2. Short-Time Fourier Transform with Hop Size 50%
         // TODO: set to 512 (see literature)
-        int hopSize = fftSize / 2;
+        int hopSize = 512;
 
         // Hopping prevents samples to get "lost" due to the windowing function
         // for further details see docs/DSP
