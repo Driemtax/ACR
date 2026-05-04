@@ -3,6 +3,7 @@
 #include "juce_audio_devices/juce_audio_devices.h"
 #include "juce_audio_formats/juce_audio_formats.h"
 #include "juce_core/juce_core.h"
+#include <cstddef>
 #include <memory>
 
 const String appDirName = "ACR_App";
@@ -100,8 +101,10 @@ void AudioEngine::startRecording()
                 activeWriter.store(threadedWriter.get());
 
                 // reset AudioThumbnail
+                thumbnail.setSource(nullptr); // removes references to files
+                thumbnail.clear(); // clears all pixels in cache
+                thumbnail.reset(2, sampleRate, 0); // prepares for new recording
                 samplesRecorded = 0;
-                thumbnail.reset(2, sampleRate, 0);
 
                 // update state of audioEngine
                 state = TransportState::Recording;

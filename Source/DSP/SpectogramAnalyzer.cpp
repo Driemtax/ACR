@@ -1,16 +1,15 @@
-#include "ChordAnalyzer.h"
+#include "SpectogramAnalyzer.h"
+#include "SpectogramAnalyzer.h"
 #include "juce_audio_basics/juce_audio_basics.h"
-#include "juce_core/juce_core.h"
 #include "juce_dsp/juce_dsp.h"
-#include <algorithm>
 #include <vector>
 
-ChordAnalyzer::ChordAnalyzer(int order)
+SpectogramAnalyzer::SpectogramAnalyzer(int order)
     : fftOrder(order),
     fftSize(1 << order),
     fft(order) {}
 
-    std::vector<std::vector<float>> ChordAnalyzer::processFullFile(const juce::AudioBuffer<float>& fullAudioFile, double sampleRate)
+    std::vector<std::vector<float>> SpectogramAnalyzer::processFullFile(const juce::AudioBuffer<float>& fullAudioFile, double sampleRate)
     {
         std::vector<std::vector<float>> spectogram;
 
@@ -30,7 +29,7 @@ ChordAnalyzer::ChordAnalyzer(int order)
 
         // 2. Short-Time Fourier Transform with Hop Size 50%
         // TODO: set to 512 (see literature)
-        int hopSize = fftSize / 2;
+        int hopSize = 512;
 
         // Hopping prevents samples to get "lost" due to the windowing function
         // for further details see docs/DSP
@@ -43,7 +42,7 @@ ChordAnalyzer::ChordAnalyzer(int order)
         return spectogram;
     }
 
-    void ChordAnalyzer::normalizeVolume(juce::AudioBuffer<float>& buffer)
+    void SpectogramAnalyzer::normalizeVolume(juce::AudioBuffer<float>& buffer)
     {
         float maxMagnitude = buffer.getMagnitude(0, buffer.getNumSamples());
 
@@ -53,7 +52,7 @@ ChordAnalyzer::ChordAnalyzer(int order)
         }
     }
 
-    std::vector<float> ChordAnalyzer::processSingleFrame(const float* frameData)
+    std::vector<float> SpectogramAnalyzer::processSingleFrame(const float* frameData)
     {
         // Since the result of FFT is an array of complex numbers we need fftSize * 2 for real part and imaginary part
         std::vector<float> fftBuffer(fftSize * 2, 0.0f);

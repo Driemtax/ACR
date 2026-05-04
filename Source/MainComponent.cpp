@@ -1,13 +1,14 @@
 #include "MainComponent.h"
 #include "Audio/AudioEngine.h"
+#include "DSP/ChromaAnalyzer.h"
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_audio_formats/juce_audio_formats.h"
 #include "juce_audio_utils/juce_audio_utils.h"
 #include "juce_core/juce_core.h"
-#include "juce_core/system/juce_PlatformDefs.h"
 #include "juce_events/juce_events.h"
 #include "juce_graphics/juce_graphics.h"
 #include "juce_gui_basics/juce_gui_basics.h"
+#include <algorithm>
 #include <iostream>
 #include <memory>
 #include <ostream>
@@ -36,6 +37,9 @@ MainComponent::MainComponent() : audioSetupComp(audioEngine.getDeviceManager()
     addAndMakeVisible(analyzeButton);
     addAndMakeVisible(loadingText);
     addAndMakeVisible(spectogramDisplay);
+
+    // chromagram components
+    addAndMakeVisible(chromaDisplay);
 
     // File selection
     addAndMakeVisible(fileButton);
@@ -67,6 +71,7 @@ MainComponent::MainComponent() : audioSetupComp(audioEngine.getDeviceManager()
         analyzeButton.setEnabled(false);
         loadingText.setVisible(true);
         spectogramDisplay.setVisible(false);
+        chromaDisplay.setVisible(false);
 
         std::thread([this]() {
             runAnalysisOffline();
@@ -180,13 +185,15 @@ void MainComponent::resized()
     fileToAnalyze.setBounds(270, 380, 200, 40);
     analyzeButton.setBounds(480, 380, 120, 40);
     loadingText.setBounds(270, 430, 180, 40);
-    spectogramDisplay.setBounds(10, 430, getWidth() - 20, 350);
+    int spectoWidth = (getWidth() - 20) / 2;
+    spectogramDisplay.setBounds(10, 430, spectoWidth, 350);
+
+    chromaDisplay.setBounds(spectoWidth + 10, 430, spectoWidth, 350);
 
     fileButton.setBounds(620, 380, 120, 40);
 }
 
 void MainComponent::runAnalysisOffline() {
-    // TODO: Store the full audio Buffer in AudioEngine for playback and this function.
    auto file = audioEngine.getAudioFilePath();
 
    juce::AudioFormatManager formatManager;
@@ -198,7 +205,7 @@ void MainComponent::runAnalysisOffline() {
    juce::AudioBuffer<float> buffer ((int)reader->numChannels, (int)reader->lengthInSamples);
    reader->read(&buffer, 0, (int)reader->lengthInSamples, 0, true, true);
 
-   auto spectogramData = chordAnalyzer.processFullFile(buffer, reader->sampleRate);
+   auto spectogramData = spectogramAnalyzer.processFullFile(buffer, reader->sampleRate);
 
    std::cout << "=== SPEKTOGRAMM BERECHNET ===" << std::endl;
    std:: cout << "Anzahl Frames (Zeit): " << spectogramData.size() << std::endl;
@@ -206,13 +213,34 @@ void MainComponent::runAnalysisOffline() {
        std::cout << "Anzahl Bins (Frequenz): " << spectogramData[0].size() << std::endl;
    }
 
+   // TODO: Process spectogram using HPCP here to produce chromagram.
+   int numFrames = (int)spectogramData.size();
+   int numBins = spectogramData.empty() ? 0 : (int)spectogramData[0].size();
+
+   juce::AudioBuffer<float> spectoBuffer(numFrames, numBins);
+
+   for (int i = 0; i < numFrames; i++) {
+       juce::FloatVectorOperations::copy(spectoBuffer.getWritePointer(i),
+           spectogramData[i].data(), numBins);
+   }
+
+   float fftSize = (float)(numBins * 2);
+   ChromaAnalyzer chromaAnalyzer = ChromaAnalyzer(reader->sampleRate, fftSize);
+   int chromaBins = chromaAnalyzer.getChromaBinSize();
+
+   auto chromagram = juce::AudioBuffer<float>(numFrames,chromaBins);
+   chromaAnalyzer.processFullSpectogram(spectoBuffer, chromagram);
+
    // This functions runs in a seperate thread and notifys the calling thread (GUI-Thread) when it has finished.
    // Then this function will be executed.
-   juce::MessageManager::callAsync([this, data = std::move(spectogramData)]() {
+   juce::MessageManager::callAsync([this, data = std::move(spectogramData), chromaData = std::move(chromagram)]() {
        loadingText.setVisible(false);
        analyzeButton.setEnabled(true);
 
        spectogramDisplay.setSpectogramData(data);
        spectogramDisplay.setVisible(true);
+
+       chromaDisplay.setChromaData(chromaData);
+       chromaDisplay.setVisible(true);
    });
 }
