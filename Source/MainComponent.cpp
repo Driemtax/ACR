@@ -1,6 +1,7 @@
 #include "MainComponent.h"
 #include "Audio/AudioEngine.h"
 #include "DSP/ChromaAnalyzer.h"
+#include "DSP/Classificator.h"
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_audio_formats/juce_audio_formats.h"
 #include "juce_audio_utils/juce_audio_utils.h"
@@ -8,7 +9,6 @@
 #include "juce_events/juce_events.h"
 #include "juce_graphics/juce_graphics.h"
 #include "juce_gui_basics/juce_gui_basics.h"
-#include <algorithm>
 #include <iostream>
 #include <memory>
 #include <ostream>
@@ -230,6 +230,9 @@ void MainComponent::runAnalysisOffline() {
 
    auto chromagram = juce::AudioBuffer<float>(numFrames,chromaBins);
    chromaAnalyzer.processFullSpectogram(spectoBuffer, chromagram);
+
+   // classify
+   Classificator classifier = Classificator();
 
    // This functions runs in a seperate thread and notifys the calling thread (GUI-Thread) when it has finished.
    // Then this function will be executed.
