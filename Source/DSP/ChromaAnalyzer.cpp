@@ -173,7 +173,7 @@ void ChromaAnalyzer::normalizeBins(juce::AudioBuffer<float> &outChroma) {
         framePointer[j] = rawVal / maxBinVal;
         }
 
-      std::cout << "Frame: " << i << ", Bin:" << j << ", Energy: " << framePointer[j] << std::endl;
+      //std::cout << "Frame: " << i << ", Bin:" << j << ", Energy: " << framePointer[j] << std::endl;
     }
   }
 }

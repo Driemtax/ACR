@@ -8,6 +8,7 @@
 #include "juce_events/juce_events.h"
 #include "juce_graphics/juce_graphics.h"
 #include "juce_gui_basics/juce_gui_basics.h"
+#include <algorithm>
 #include <iostream>
 #include <memory>
 #include <ostream>
@@ -36,6 +37,9 @@ MainComponent::MainComponent() : audioSetupComp(audioEngine.getDeviceManager()
     addAndMakeVisible(analyzeButton);
     addAndMakeVisible(loadingText);
     addAndMakeVisible(spectogramDisplay);
+
+    // chromagram components
+    addAndMakeVisible(chromaDisplay);
 
     // File selection
     addAndMakeVisible(fileButton);
@@ -67,6 +71,7 @@ MainComponent::MainComponent() : audioSetupComp(audioEngine.getDeviceManager()
         analyzeButton.setEnabled(false);
         loadingText.setVisible(true);
         spectogramDisplay.setVisible(false);
+        chromaDisplay.setVisible(false);
 
         std::thread([this]() {
             runAnalysisOffline();
@@ -180,7 +185,10 @@ void MainComponent::resized()
     fileToAnalyze.setBounds(270, 380, 200, 40);
     analyzeButton.setBounds(480, 380, 120, 40);
     loadingText.setBounds(270, 430, 180, 40);
-    spectogramDisplay.setBounds(10, 430, getWidth() - 20, 350);
+    int spectoWidth = (getWidth() - 20) / 2;
+    spectogramDisplay.setBounds(10, 430, spectoWidth, 350);
+
+    chromaDisplay.setBounds(spectoWidth + 10, 430, spectoWidth, 350);
 
     fileButton.setBounds(620, 380, 120, 40);
 }
@@ -225,11 +233,14 @@ void MainComponent::runAnalysisOffline() {
 
    // This functions runs in a seperate thread and notifys the calling thread (GUI-Thread) when it has finished.
    // Then this function will be executed.
-   juce::MessageManager::callAsync([this, data = std::move(spectogramData)]() {
+   juce::MessageManager::callAsync([this, data = std::move(spectogramData), chromaData = std::move(chromagram)]() {
        loadingText.setVisible(false);
        analyzeButton.setEnabled(true);
 
        spectogramDisplay.setSpectogramData(data);
        spectogramDisplay.setVisible(true);
+
+       chromaDisplay.setChromaData(chromaData);
+       chromaDisplay.setVisible(true);
    });
 }
