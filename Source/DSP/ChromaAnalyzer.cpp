@@ -2,6 +2,7 @@
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_core/juce_core.h"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdlib>
 #include <vector>
@@ -38,7 +39,8 @@ void ChromaAnalyzer::processFullSpectogram(const juce::AudioBuffer<float> &spect
     // Normalize every frame
     normalizeBins(outChromagram);
 
-    // TODO: Apply median-filter here
+    // Apply median filter
+    applyMedianFilter(outChromagram);
 }
 
 // This function performs a full HPCP on a frame of the spectogram. For details of the HPCP algorithm see docs/DSP
@@ -184,6 +186,44 @@ void ChromaAnalyzer::normalizeBins(juce::AudioBuffer<float> &outChroma) {
       //std::cout << "Frame: " << i << ", Bin:" << j << ", Energy: " << framePointer[j] << std::endl;
     }
   }
+}
+
+// Applys a median filter to every frame of the chroma and writes in-place.
+void ChromaAnalyzer::applyMedianFilter(juce::AudioBuffer<float> &chroma) {
+    // It's just me and the OG Boys. We cant write directly in-place, because the the results of one frame would influence the next frames result.
+    juce::AudioBuffer<float> ogChroma;
+    ogChroma.makeCopyOf(chroma);
+
+    const int medianWindow = 5;
+    const int medianMid = medianWindow / 2;
+    const int maxFrames = chroma.getNumChannels();
+    int currentIndex = 0;
+    float binMedian = 0.0f;
+
+    std::array<float, (size_t)medianWindow> currentValues;
+    currentValues.fill(0.0f);
+
+    for (int frame = 0; frame < maxFrames; frame++) {
+        float* outputFrame = chroma.getWritePointer(frame);
+        for (int bin = 0; bin < chroma.getNumSamples(); bin++) {
+            // We iterate over the bin of the left and right neighbors and calculate the median.
+            for (int i = -medianMid; i <= medianMid; i++) {
+                // This ensures we dont acces out of bounds elements!
+                currentIndex = std::max(0, std::min(maxFrames - 1, frame + i));
+                const float* neighborFrame = ogChroma.getReadPointer(currentIndex);
+                currentValues[i + medianMid] = neighborFrame[bin];
+            }
+            auto first = currentValues.begin();
+            auto nth = first + medianMid;
+            auto last = currentValues.end();
+            std::nth_element(first, nth, last);
+
+            // The result of nth_element is garanteed to be at index medianMid.
+            outputFrame[bin] = currentValues[medianMid];
+        }
+    }
+
+
 }
 
 int ChromaAnalyzer::getChromaBinSize() const {

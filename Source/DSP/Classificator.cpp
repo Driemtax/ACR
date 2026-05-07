@@ -47,7 +47,7 @@ int Classificator::classifyFrame(const float* frame) const {
         }
     }
 
-    // If the nearets template vector is too far away for a classification, then we just return -1, indicating there is not template matching the current frame.
+    // If the nearets template vector is too far away for a classification, then we just return -1, indicating there is no template matching the current frame.
     if (highestSimilarity < similarityThreshold) {
         highestSimilarityIndex = -1;
     }
