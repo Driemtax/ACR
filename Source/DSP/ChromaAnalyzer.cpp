@@ -4,8 +4,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
-#include <iostream>
-#include <ostream>
 #include <vector>
 
 ChromaAnalyzer::ChromaAnalyzer(float sampleRate, float fftSize)
@@ -40,7 +38,7 @@ void ChromaAnalyzer::processFullSpectogram(const juce::AudioBuffer<float> &spect
     // Normalize every frame
     normalizeBins(outChromagram);
 
-    // TODO: set Chromagram data to GUI component in same fashion as done for spectogram
+    // TODO: Apply median-filter here
 }
 
 // This function performs a full HPCP on a frame of the spectogram. For details of the HPCP algorithm see docs/DSP

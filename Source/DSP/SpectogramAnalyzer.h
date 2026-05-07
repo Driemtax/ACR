@@ -16,6 +16,14 @@ class SpectogramAnalyzer
   // 2D-Array with spectogram for full audio data
   std::vector<std::vector<float>> processFullFile(const juce::AudioBuffer<float>& fullAudioFile, double sampleRate);
 
+  double getSampleRate() {
+      return 44100.0;
+  }
+
+  int getHopSize() {
+      return 512;
+  }
+
   private:
   int fftOrder;
   int fftSize;

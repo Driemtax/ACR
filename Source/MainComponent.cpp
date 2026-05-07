@@ -1,6 +1,7 @@
 #include "MainComponent.h"
 #include "Audio/AudioEngine.h"
 #include "DSP/ChromaAnalyzer.h"
+#include "DSP/Classificator.h"
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_audio_formats/juce_audio_formats.h"
 #include "juce_audio_utils/juce_audio_utils.h"
@@ -13,6 +14,7 @@
 #include <memory>
 #include <ostream>
 #include <thread>
+#include <vector>
 
 const int WIDTH = 800;
 const int HEIGHT = 800;
@@ -231,16 +233,24 @@ void MainComponent::runAnalysisOffline() {
    auto chromagram = juce::AudioBuffer<float>(numFrames,chromaBins);
    chromaAnalyzer.processFullSpectogram(spectoBuffer, chromagram);
 
+   // classify
+   Classificator classifier = Classificator();
+   std::vector<int> classifiedFrames;
+   classifiedFrames.resize(chromagram.getNumChannels());
+   classifier.classifyFullChroma(chromagram, classifiedFrames);
+   std::vector<Classificator::ChordSegment> chordSegments = classifier.getGroupedSegments(classifiedFrames);
+
    // This functions runs in a seperate thread and notifys the calling thread (GUI-Thread) when it has finished.
    // Then this function will be executed.
-   juce::MessageManager::callAsync([this, data = std::move(spectogramData), chromaData = std::move(chromagram)]() {
+   juce::MessageManager::callAsync([this, data = std::move(spectogramData), chromaData = std::move(chromagram),
+                                        chordLabels = std::move(chordSegments), sampleRate = spectogramAnalyzer.getSampleRate(), hopSize = spectogramAnalyzer.getHopSize()]() {
        loadingText.setVisible(false);
        analyzeButton.setEnabled(true);
 
        spectogramDisplay.setSpectogramData(data);
        spectogramDisplay.setVisible(true);
 
-       chromaDisplay.setChromaData(chromaData);
+       chromaDisplay.setChromaData(chromaData, chordLabels, sampleRate, hopSize);
        chromaDisplay.setVisible(true);
    });
 }

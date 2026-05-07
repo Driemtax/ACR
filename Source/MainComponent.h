@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DSP/ChromaAnalyzer.h"
+#include "DSP/Classificator.h"
 #include "GUI/ChromaDisplay.h"
 #include "GUI/SpectogramDisplay.h"
 #include "DSP/SpectogramAnalyzer.h"
@@ -55,6 +56,8 @@ private:
 
     // Chromagram
     ChromaDisplay chromaDisplay;
+
+    // Classification
 
     // File selection
     juce::TextButton fileButton { "Open File " };
