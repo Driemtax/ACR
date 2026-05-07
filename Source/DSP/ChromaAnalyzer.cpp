@@ -37,6 +37,8 @@ void ChromaAnalyzer::processFullSpectogram(const juce::AudioBuffer<float> &spect
 
     // Normalize every frame
     normalizeBins(outChromagram);
+
+    // TODO: Apply median-filter here
 }
 
 // This function performs a full HPCP on a frame of the spectogram. For details of the HPCP algorithm see docs/DSP
