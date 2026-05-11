@@ -40,6 +40,7 @@ class ChromaAnalyzer {
     float calculateWeightFreq(int n, float dist) const;
     void calculateHarmonicWeights();
     void normalizeBins(juce::AudioBuffer<float> &outChroma);
+    void applyMedianFilter(juce::AudioBuffer<float> &chroma);
 
     std::vector<Peak> currentPeaks;
 

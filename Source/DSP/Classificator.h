@@ -35,6 +35,6 @@ class Classificator {
 
     std::vector<std::vector<float>> templates;
     std::vector<juce::String> chordNamesMap;
-    const float similarityThreshold = 0.3f;
+    const float similarityThreshold = 0.8f;
 
 };
