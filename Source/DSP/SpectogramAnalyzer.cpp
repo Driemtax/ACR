@@ -9,6 +9,17 @@ SpectogramAnalyzer::SpectogramAnalyzer(int order)
     fftSize(1 << order),
     fft(order) {}
 
+    /**
+     * @brief Processes a full audio file and generates its spectrogram.
+     *
+     * This method normalizes the volume of the audio, mixes multi-channel audio down
+     * to a single mono channel, and applies a Short-Time Fourier Transform (STFT)
+     * over the entire audio buffer to generate the frequency magnitude data over time.
+     *
+     * @param fullAudioFile A reference to the juce::AudioBuffer containing the audio data to be processed.
+     * @param sampleRate    The sample rate of the audio data.
+     * @return              A 2D vector representing the spectrogram, where each inner vector contains the magnitude bins for a single timeframe.
+     */
     std::vector<std::vector<float>> SpectogramAnalyzer::processFullFile(const juce::AudioBuffer<float>& fullAudioFile, double sampleRate)
     {
         std::vector<std::vector<float>> spectogram;
@@ -28,7 +39,6 @@ SpectogramAnalyzer::SpectogramAnalyzer(int order)
         const int totalSamples = workingBuffer.getNumSamples();
 
         // 2. Short-Time Fourier Transform with Hop Size 50%
-        // TODO: set to 512 (see literature)
         int hopSize = 512;
 
         // Hopping prevents samples to get "lost" due to the windowing function
@@ -42,6 +52,14 @@ SpectogramAnalyzer::SpectogramAnalyzer(int order)
         return spectogram;
     }
 
+    /**
+     * @brief Normalizes the volume of the given audio buffer.
+     *
+     * This method calculates the maximum magnitude across all samples in the buffer
+     * and applies a corresponding gain to scale the highest magnitude to 1.0 (or -1.0).
+     *
+     * @param buffer A reference to the juce::AudioBuffer<float> to be normalized.
+     */
     void SpectogramAnalyzer::normalizeVolume(juce::AudioBuffer<float>& buffer)
     {
         float maxMagnitude = buffer.getMagnitude(0, buffer.getNumSamples());
@@ -52,6 +70,19 @@ SpectogramAnalyzer::SpectogramAnalyzer(int order)
         }
     }
 
+    /**
+     * @brief Processes a single frame of audio data and calculates its frequency magnitudes.
+     *
+     * This method applies a windowing function to the input frame to prevent spectral leakage,
+     * performs a Forward Fast Fourier Transform (FFT) to convert the time-domain signal into
+     * the frequency domain, and computes the magnitude of each frequency bin in decibels.
+     * Due to the Nyquist theorem, only the first half of the FFT bins (up to the Nyquist frequency)
+     * are included in the result.
+     *
+     * @param frameData A pointer to the array of floating-point audio samples for the frame.
+     *                  The array must contain at least `fftSize` elements.
+     * @return          A std::vector containing the frequency magnitudes in decibels for the first half of the FFT bins.
+     */
     std::vector<float> SpectogramAnalyzer::processSingleFrame(const float* frameData)
     {
         // Since the result of FFT is an array of complex numbers we need fftSize * 2 for real part and imaginary part

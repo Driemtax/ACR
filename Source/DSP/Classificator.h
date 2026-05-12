@@ -34,6 +34,7 @@ class Classificator {
     float calculateCosineSimilarity(const std::vector<float>& templateFeatures, const float* frame) const;
 
     std::vector<std::vector<float>> templates;
+    int templateCount = 36;
     std::vector<juce::String> chordNamesMap;
     const float similarityThreshold;
 

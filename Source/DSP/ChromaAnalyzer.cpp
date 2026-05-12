@@ -28,7 +28,16 @@ ChromaAnalyzer::ChromaAnalyzer(float sampleRate, float fftSize, float s, int chr
   calculateHarmonicWeights();
 }
 
-// This function processes every frame of a given spectogram and calculates the HPCP vector for every frame normalized in range [0,1].
+/**
+ * @brief Processes every frame of a given spectrogram and calculates the HPCP vector.
+ *
+ * This method iterates over all frames of the input spectrogram, computes the Harmonic
+ * Pitch Class Profile (HPCP) for each frame, normalizes the resulting vectors to the
+ * range [0, 1], and applies a median filter to smooth the output chromagram.
+ *
+ * @param spectogram A constant reference to the input audio buffer containing the spectrogram data.
+ * @param outChromagram A reference to the output audio buffer where the computed and filtered chromagram will be stored.
+ */
 void ChromaAnalyzer::processFullSpectogram(const juce::AudioBuffer<float> &spectogram, juce::AudioBuffer<float> &outChromagram) {
     const float* currentFrame;
 
@@ -45,7 +54,15 @@ void ChromaAnalyzer::processFullSpectogram(const juce::AudioBuffer<float> &spect
     applyMedianFilter(outChromagram);
 }
 
-// This function performs a full HPCP on a frame of the spectogram. For details of the HPCP algorithm see docs/DSP
+/**
+ * @brief Performs a full Harmonic Pitch Class Profile (HPCP) calculation on a single frame of the spectrogram.
+ *
+ * For detailed information regarding the underlying HPCP algorithm, please refer to docs/DSP.
+ *
+ * @param currentFrame A pointer to the array containing the magnitude values of the current spectrogram frame.
+ * @param frameNum The index of the frame currently being processed.
+ * @param outChroma A reference to the output audio buffer where the computed chroma values will be written.
+ */
 void ChromaAnalyzer::processFrame(const float* currentFrame, int frameNum, juce::AudioBuffer<float> &outChroma) {
     float sumBinEnergy = 0.0f;
     float freqWeight = 0.0f;
@@ -75,7 +92,17 @@ void ChromaAnalyzer::processFrame(const float* currentFrame, int frameNum, juce:
     }
 }
 
-// Extracts all relevant peaks of one spectogram frame and fills the currentPeaks Buffer.
+/**
+ * @brief Extracts the local maxima (peaks) from a given spectrogram frame.
+ *
+ * This method iterates over the frequency bins of the provided frame and identifies
+ * local maxima by comparing each bin with its immediate left and right neighbors.
+ * It only considers peaks within a specific frequency range (approximately 100 Hz to 5000 Hz)
+ * and those that exceed a calculated magnitude threshold to ignore noise in quiet frames.
+ * The identified peaks are stored internally for further processing.
+ *
+ * @param currentFrame A pointer to the array containing the magnitude values of the current spectrogram frame.
+ */
 void ChromaAnalyzer::extractPeaks(const float* currentFrame) {
     // reset currentPeaks every Frame
     currentPeaks.clear();
@@ -103,8 +130,13 @@ void ChromaAnalyzer::extractPeaks(const float* currentFrame) {
     }
 }
 
-// Calculates the mid frequencies for every bin of the hpcp. This only needs to
-// be called once to initialize it, those frequencies never change.
+/**
+ * @brief Calculates and initializes the center frequencies for all chroma bins.
+ *
+ * This method computes the center frequency for each Harmonic Pitch Class Profile
+ * (HPCP) bin based on a reference frequency. The calculated frequencies are
+ * spaced logarithmically and stored in the internal binMids array.
+ */
 void ChromaAnalyzer::calculateBinMids() {
   int numBins = binMids.size();
   for (int i = 0; i < numBins; i++) {
@@ -112,9 +144,17 @@ void ChromaAnalyzer::calculateBinMids() {
   }
 }
 
-// Calculates the distance between to frequencies, not regarding octave
-// information. It is used to calculate the distance between a given frequency
-// f_i and the mid frequency of a hpcp bin.
+/**
+ * @brief Calculates the shortest pitch class distance between two frequencies.
+ *
+ * This method computes the distance in semitones between a given frequency and a reference
+ * bin frequency. The resulting distance is normalized to be within the range [-6, 6] to
+ * represent the shortest path in the circular pitch class space.
+ *
+ * @param f_i The input frequency to calculate the distance for.
+ * @param f_n The reference frequency.
+ * @return The shortest distance in semitones between the two frequencies. Returns INFINITY if f_n is less than 0.1.
+ */
 float ChromaAnalyzer::calculateDistance(float f_i, float f_n) const {
   if (f_n < 0.1) {
     return INFINITY;
@@ -133,8 +173,19 @@ float ChromaAnalyzer::calculateDistance(float f_i, float f_n) const {
   return dist;
 }
 
-// Calculates the weight of a given frequency f_i in the n-th hpcp bin
-// see docs/DSP for further explanations.
+/**
+ * @brief Calculates the weight of a given frequency in the n-th HPCP bin.
+ *
+ * This method computes the weighting factor for a frequency based on its distance
+ * to the center frequency of the specified Harmonic Pitch Class Profile (HPCP) bin.
+ * It uses a cosine-squared window, ensuring that only frequencies within a certain
+ * distance contribute to the bin's energy. For further mathematical details, please
+ * refer to docs/DSP.
+ *
+ * @param n The index of the HPCP bin.
+ * @param dist The distance between the frequency and the center frequency of the bin.
+ * @return The computed weight for the frequency.
+ */
 float ChromaAnalyzer::calculateWeightFreq(int n, float dist) const {
   float weight = 0.0;
   float halfPi = juce::MathConstants<float>::halfPi;
@@ -149,15 +200,31 @@ float ChromaAnalyzer::calculateWeightFreq(int n, float dist) const {
   return weight;
 }
 
-// Calculates the weight of a harmonic. See docs/DSP for further details.
+/**
+ * @brief Calculates and initializes the weights for each harmonic.
+ *
+ * This method computes the weighting factor for each harmonic based on the
+ * spectral shape parameter 's'. The weights are calculated as s raised to the
+ * power of the harmonic index, resulting in an exponential decay. For further
+ * mathematical details, please refer to docs/DSP.
+ */
 void ChromaAnalyzer::calculateHarmonicWeights() {
     for (int i = 0; i < harmonicWeights.size(); i++) {
         harmonicWeights[i] = pow(s, i);
     }
 }
 
-// Normalizes all Bins of every Frame to [0,1]. This ensures that volume does
-// not has any effects.
+/**
+ * @brief Normalizes all bins of every frame to the range [0, 1].
+ *
+ * This method ensures that the overall volume of the audio does not affect
+ * the resulting chroma values. It scales the bin energies of each frame by
+ * dividing them by the maximum bin value within that frame. Frames with a
+ * maximum energy below a specified noise gate threshold are zeroed out to
+ * prevent noise amplification in silent passages.
+ *
+ * @param outChroma A reference to the audio buffer containing the chromagram data to be normalized in-place.
+ */
 void ChromaAnalyzer::normalizeBins(juce::AudioBuffer<float> &outChroma) {
   int frameCount = outChroma.getNumChannels();
   int binCount = outChroma.getNumSamples();
@@ -193,9 +260,19 @@ void ChromaAnalyzer::normalizeBins(juce::AudioBuffer<float> &outChroma) {
   }
 }
 
-// Applys a median filter to every frame of the chroma and writes in-place.
+/**
+ * @brief Applies a median filter across the frames of the chromagram to smooth the data.
+ *
+ * This method iterates over each chroma bin and applies a moving median filter across
+ * consecutive frames. This smoothing process reduces noise and isolated spurious peaks
+ * in the chroma features, improving the temporal stability of the output chromagram.
+ * The filtering is performed using an internal copy of the buffer to prevent the
+ * processed frames from recursively affecting the subsequent frames.
+ *
+ * @param chroma A reference to the audio buffer containing the chromagram data to be filtered in-place.
+ */
 void ChromaAnalyzer::applyMedianFilter(juce::AudioBuffer<float> &chroma) {
-    // It's just me and the OG Boys. We cant write directly in-place, because the the results of one frame would influence the next frames result.
+    // It's just me and the OG Boys. We cant write directly in-place, because then the results of one frame would influence the next frames result.
     juce::AudioBuffer<float> ogChroma;
     ogChroma.makeCopyOf(chroma);
 

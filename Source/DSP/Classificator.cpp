@@ -16,13 +16,26 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T>& v) {
 }
 
 Classificator::Classificator(float similarityThreshold) : similarityThreshold(similarityThreshold) {
-    chordNamesMap = std::vector<juce::String>(36);
+    chordNamesMap = std::vector<juce::String>(templateCount);
 
     templates = std::vector<std::vector<float>>(chordNamesMap.capacity());
     generateTemplates();
 
 }
 
+/**
+ * Classifies an entire sequence of chroma frames.
+ *
+ * This function iterates over all frames in the provided chroma buffer,
+ * classifies each frame individually using the internal template vectors, and stores
+ * the resulting classification indices in the provided result vector.
+ *
+ * @param chroma  A buffer containing the chroma features to classify. Each channel
+ *                represents a single frame containing chroma data.
+ * @param result  A vector where the classification indices for each frame will be stored.
+ *                The size of this vector should be at least equal to the number of
+ *                channels in the chroma buffer.
+ */
 void Classificator::classifyFullChroma(const juce::AudioBuffer<float> &chroma, std::vector<int> &result) const {
     for (int i = 0; i < chroma.getNumChannels(); i++) {
         const float* currentFrame = chroma.getReadPointer(i);
@@ -32,7 +45,20 @@ void Classificator::classifyFullChroma(const juce::AudioBuffer<float> &chroma, s
     }
 }
 
-// classifies one frame comparing it to all template vectors. For comparison this function uses cosine similarity.
+/**
+ * Classifies a single chroma frame by comparing it to all template vectors.
+ *
+ * This function uses cosine similarity to compare the provided frame
+ * against all generated chord templates. It returns the index of the template
+ * with the highest similarity score. If the highest similarity score is below
+ * the configured similarity threshold, the classification is considered invalid.
+ * For more details on cosine similarity please refer to Docs/
+ *
+ * @param frame  A pointer to a float array representing the chroma features of a single frame.
+ *               The array size must match the number of features in the template vectors (typically 12).
+ * @return       The index of the highest matching template vector, or -1 if the best match
+ *               falls below the similarity threshold.
+ */
 int Classificator::classifyFrame(const float* frame) const {
     int highestSimilarityIndex = -1;
     float highestSimilarity = 0.0f;
@@ -117,13 +143,20 @@ std::vector<Classificator::ChordSegment> Classificator::getGroupedSegments(const
     return segments;
 }
 
-// generates template vectors for major, minor and powerchords.
+/**
+ * Generates the template vectors for major, minor, and power chords.
+ *
+ * This function initializes and populates the internal template vectors and
+ * chord names map. It creates 12-dimensional chroma feature vectors for
+ * all 12 root notes, producing templates for Major, Minor, and Power chords.
+ * The generated templates are used later for frame classification.
+ */
 void Classificator::generateTemplates() {
     chordNamesMap.clear();
     templates.clear();
 
-    chordNamesMap.reserve(36);
-    templates.reserve(36);
+    chordNamesMap.reserve(templateCount);
+    templates.reserve(templateCount);
 
     const char* noteNames[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
     juce::String name;
@@ -162,7 +195,17 @@ void Classificator::generateTemplates() {
 
 }
 
-// calculates the cosine similarity for two vectors. Values will be between 0 (no similarity) and 1 (full similarity).
+/**
+ * Calculates the cosine similarity between a template vector and a chroma frame.
+ *
+ * This function computes the cosine similarity score, which is a measure of similarity
+ * between two non-zero vectors of an inner product space. The resulting value ranges
+ * from 0.0 (no similarity) to 1.0 (identical direction).
+ *
+ * @param templateFeatures  A vector containing the features of the chord template.
+ * @param frame             A pointer to a float array representing the features of a single chroma frame.
+ * @return                  The cosine similarity score between the two input vectors, ranging from 0.0 to 1.0.
+ */
 float Classificator::calculateCosineSimilarity(const std::vector<float> &templateFeatures, const float *frame) const {
     float sumAB = 0.0f;
     float sumASquared = 0.0f;

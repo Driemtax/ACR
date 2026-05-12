@@ -41,6 +41,8 @@ target_sources(ACR PRIVATE
     Source/DSP/ChromaAnalyzer.cpp
     Source/DSP/Classificator.h
     Source/DSP/Classificator.cpp
+    Source/DSP/ChordAnalyzer.h
+    Source/DSP/ChordAnalyzer.cpp
 )
 
 # ==============================================================================
