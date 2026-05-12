@@ -1,5 +1,6 @@
 #include "MainComponent.h"
 #include "Audio/AudioEngine.h"
+#include "DSP/ChordAnalyzer.h"
 #include "DSP/ChromaAnalyzer.h"
 #include "DSP/Classificator.h"
 #include "juce_audio_basics/juce_audio_basics.h"
@@ -9,7 +10,6 @@
 #include "juce_events/juce_events.h"
 #include "juce_graphics/juce_graphics.h"
 #include "juce_gui_basics/juce_gui_basics.h"
-#include <algorithm>
 #include <iostream>
 #include <memory>
 #include <ostream>
@@ -197,60 +197,17 @@ void MainComponent::resized()
 
 void MainComponent::runAnalysisOffline() {
    auto file = audioEngine.getAudioFilePath();
-
-   juce::AudioFormatManager formatManager;
-   formatManager.registerBasicFormats();
-
-   std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(file));
-   if (reader == nullptr) return;
-
-   juce::AudioBuffer<float> buffer ((int)reader->numChannels, (int)reader->lengthInSamples);
-   reader->read(&buffer, 0, (int)reader->lengthInSamples, 0, true, true);
-
-   auto spectogramData = spectogramAnalyzer.processFullFile(buffer, reader->sampleRate);
-
-   std::cout << "=== SPEKTOGRAMM BERECHNET ===" << std::endl;
-   std:: cout << "Anzahl Frames (Zeit): " << spectogramData.size() << std::endl;
-   if (!spectogramData.empty()) {
-       std::cout << "Anzahl Bins (Frequenz): " << spectogramData[0].size() << std::endl;
-   }
-
-   // TODO: Process spectogram using HPCP here to produce chromagram.
-   int numFrames = (int)spectogramData.size();
-   int numBins = spectogramData.empty() ? 0 : (int)spectogramData[0].size();
-
-   juce::AudioBuffer<float> spectoBuffer(numFrames, numBins);
-
-   for (int i = 0; i < numFrames; i++) {
-       juce::FloatVectorOperations::copy(spectoBuffer.getWritePointer(i),
-           spectogramData[i].data(), numBins);
-   }
-
-   float fftSize = (float)(numBins * 2);
-   ChromaAnalyzer chromaAnalyzer = ChromaAnalyzer(reader->sampleRate, fftSize);
-   int chromaBins = chromaAnalyzer.getChromaBinSize();
-
-   auto chromagram = juce::AudioBuffer<float>(numFrames,chromaBins);
-   chromaAnalyzer.processFullSpectogram(spectoBuffer, chromagram);
-
-   // classify
-   Classificator classifier = Classificator();
-   std::vector<int> classifiedFrames;
-   classifiedFrames.resize(chromagram.getNumChannels());
-   classifier.classifyFullChroma(chromagram, classifiedFrames);
-   std::vector<Classificator::ChordSegment> chordSegments = classifier.getGroupedSegments(classifiedFrames);
-
+   auto result = chordAnalyzer.runAnalysis(file);
    // This functions runs in a seperate thread and notifys the calling thread (GUI-Thread) when it has finished.
    // Then this function will be executed.
-   juce::MessageManager::callAsync([this, data = std::move(spectogramData), chromaData = std::move(chromagram),
-                                        chordLabels = std::move(chordSegments), sampleRate = spectogramAnalyzer.getSampleRate(), hopSize = spectogramAnalyzer.getHopSize()]() {
+   juce::MessageManager::callAsync([this, res = std::move(result)]() {
        loadingText.setVisible(false);
        analyzeButton.setEnabled(true);
 
-       spectogramDisplay.setSpectogramData(data);
+       spectogramDisplay.setSpectogramData(res.spectogramData);
        spectogramDisplay.setVisible(true);
 
-       chromaDisplay.setChromaData(chromaData, chordLabels, sampleRate, hopSize);
+       chromaDisplay.setChromaData(res.chromagramData, res.chordSegments, res.sampleRate, res.hopSize);
        chromaDisplay.setVisible(true);
    });
 }

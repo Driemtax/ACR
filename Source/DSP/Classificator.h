@@ -8,7 +8,7 @@
 // Binary Template vectors are matched using the cosine similarity
 class Classificator {
     public:
-    Classificator();
+    Classificator(float similarityThreshold);
     ~Classificator() = default;
 
     struct ChordSegment {
@@ -34,7 +34,8 @@ class Classificator {
     float calculateCosineSimilarity(const std::vector<float>& templateFeatures, const float* frame) const;
 
     std::vector<std::vector<float>> templates;
+    int templateCount = 36;
     std::vector<juce::String> chordNamesMap;
-    const float similarityThreshold = 0.8f;
+    const float similarityThreshold;
 
 };

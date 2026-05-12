@@ -3,7 +3,6 @@
 #include "juce_audio_devices/juce_audio_devices.h"
 #include "juce_audio_formats/juce_audio_formats.h"
 #include "juce_core/juce_core.h"
-#include <cstddef>
 #include <memory>
 
 const String appDirName = "ACR_App";
@@ -49,11 +48,29 @@ void AudioEngine::audioDeviceAboutToStart (juce::AudioIODevice* device) {
     // set sample rate and buffer size
     transportSource.prepareToPlay(device->getCurrentBufferSizeSamples(), device->getCurrentSampleRate());
 }
+
 void AudioEngine::audioDeviceStopped() {
     // free all ressources
     transportSource.releaseResources();
 }
 
+/**
+ * @brief Callback method for processing audio input and output data.
+ *
+ * This method is called repeatedly by the audio device to process a block of audio data.
+ * If a recording is currently active, it writes the incoming audio data to a file and updates
+ * the audio thumbnail. If playback is active, it fills the output buffers with audio data
+ * from the transport source; otherwise, it clears the output buffers to prevent noise.
+ *
+ * CARE: No blocking operation should take place in this function. This is a callback, which is called by the operation system repeatetly.
+ *
+ * @param inputChannelData  An array of pointers to the incoming audio data for each input channel.
+ * @param numInputChannels  The number of available input channels.
+ * @param outputChannelData An array of pointers to the outgoing audio data for each output channel.
+ * @param numOutputChannels The number of available output channels.
+ * @param numSamples        The number of samples to process in this block.
+ * @param context           Additional context information regarding the callback.
+ */
 void AudioEngine::audioDeviceIOCallbackWithContext (const float* const* inputChannelData, int numInputChannels,
                             float* const* outputChannelData, int numOutputChannels,
                             int numSamples,
@@ -84,6 +101,15 @@ void AudioEngine::audioDeviceIOCallbackWithContext (const float* const* inputCha
     }
 }
 
+/**
+ * @brief Starts the audio recording process.
+ *
+ * This method initializes the recording by creating a new audio file and setting up
+ * the necessary audio format writers. It prepares the audio thumbnail to visualize
+ * the incoming audio data and updates the internal transport state to indicate that
+ * a recording is in progress. If the transport state is not currently stopped,
+ * this method returns immediately without doing anything.
+ */
 void AudioEngine::startRecording()
 {
     if (state != TransportState::Stopped) return;
@@ -132,6 +158,16 @@ void AudioEngine::stop()
 
 }
 
+/**
+ * @brief Starts the audio playback process.
+ *
+ * This method initiates playback by reading the current audio file and configuring
+ * the necessary audio format reader. It also updates the audio thumbnail to visualize
+ * the file being played and sets the internal transport state to indicate that
+ * playback is active. If the file being played is the default recording, some gain
+ * is applied to compensate for lower recording levels. If the transport state is
+ * not currently stopped, this method returns immediately without doing anything.
+ */
 void AudioEngine::startPlayback()
 {
     if (state != TransportState::Stopped) return;
