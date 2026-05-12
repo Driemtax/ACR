@@ -15,7 +15,7 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T>& v) {
        return os;
 }
 
-Classificator::Classificator() {
+Classificator::Classificator(float similarityThreshold) : similarityThreshold(similarityThreshold) {
     chordNamesMap = std::vector<juce::String>(36);
 
     templates = std::vector<std::vector<float>>(chordNamesMap.capacity());

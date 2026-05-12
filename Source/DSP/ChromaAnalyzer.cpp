@@ -7,10 +7,12 @@
 #include <cstdlib>
 #include <vector>
 
-ChromaAnalyzer::ChromaAnalyzer(float sampleRate, float fftSize)
+ChromaAnalyzer::ChromaAnalyzer(float sampleRate, float fftSize, float s, int chromaRes)
     : fftBinFrequencies(static_cast<int>(fftSize / 2)),
       binMids(chromaSize * resolution),
-      harmonicWeights(8) {
+      harmonicWeights(8),
+      resolution(chromaRes),
+      s(s){
   int numBins = static_cast<int>(fftSize / 2);
 
   for (int i = 0; i < numBins; i++) {
@@ -79,16 +81,19 @@ void ChromaAnalyzer::extractPeaks(const float* currentFrame) {
     currentPeaks.clear();
 
     int numFrequencies = fftBinFrequencies.size();
+    float binWidth = fftBinFrequencies[1];
+    int startIndex = std::max(2, static_cast<int>(100.f / binWidth));
+    int endIndex = std::min(numFrequencies - 1, static_cast<int>(5000.0f / binWidth) + 1);
     Peak peak(0.0f, 0.0f);;
 
-    float maxValInFrame = *std::max_element(currentFrame, currentFrame + numFrequencies);
+    float maxValInFrame = *std::max_element(currentFrame + startIndex, currentFrame + endIndex);
     // the thresholds needs to be at a minimum of 0.001 so that a silent frame does not get peaks due to noise
     float threshold = std::max(maxValInFrame * 0.1f, 0.001f);
 
 
     // We iterate over all Frequency Bins of this frame and search for a local maxima considering the left and right neighbour frame
     // we start at Index 1, cause index 0 has no left neighbour. We also end one bin early, cause last bin has no right neighbour.
-    for (int i = 1; i < numFrequencies-1; i++) {
+    for (int i = startIndex; i < endIndex; i++) {
         if (currentFrame[i] > currentFrame[i-1] &&
             currentFrame[i] > currentFrame[i+1] &&
             currentFrame[i] > threshold) {

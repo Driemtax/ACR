@@ -6,7 +6,7 @@
 
 class ChromaAnalyzer {
     public:
-    ChromaAnalyzer(float sampleRate, float fftSize);
+    ChromaAnalyzer(float sampleRate, float fftSize, float s, int chromaRes);
     ~ChromaAnalyzer() = default;
 
     void processFullSpectogram(const juce::AudioBuffer<float> &spectogram, juce::AudioBuffer<float> &outChromagram);
