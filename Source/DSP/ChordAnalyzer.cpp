@@ -63,7 +63,7 @@ ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
   }
 
   float fftSize = (float)(numBins * 2);
-  ChromaAnalyzer chromaAnalyzer = ChromaAnalyzer(reader->sampleRate, fftSize, s, chromaRes);
+  ChromaAnalyzer chromaAnalyzer = ChromaAnalyzer(reader->sampleRate, fftSize, s, chromaRes, medianWindowSize, medianFilter);
   int chromaBins = chromaAnalyzer.getChromaBinSize();
 
   auto chromagram = juce::AudioBuffer<float>(numFrames, chromaBins);

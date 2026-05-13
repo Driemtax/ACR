@@ -2,17 +2,18 @@
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_core/juce_core.h"
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <cstdlib>
 #include <vector>
 
-ChromaAnalyzer::ChromaAnalyzer(float sampleRate, float fftSize, float s, int chromaRes)
+ChromaAnalyzer::ChromaAnalyzer(float sampleRate, float fftSize, float s, int chromaRes, int medianWindow, bool medianFilter)
     : fftBinFrequencies(static_cast<int>(fftSize / 2)),
       binMids(chromaSize * resolution),
       harmonicWeights(8),
       resolution(chromaRes),
-      s(s){
+      s(s),
+      medianWindow(medianWindow),
+      medianFilter(medianFilter){
   int numBins = static_cast<int>(fftSize / 2);
 
   for (int i = 0; i < numBins; i++) {
@@ -51,7 +52,9 @@ void ChromaAnalyzer::processFullSpectogram(const juce::AudioBuffer<float> &spect
     normalizeBins(outChromagram);
 
     // Apply median filter
-    applyMedianFilter(outChromagram);
+    if (medianFilter) {
+        applyMedianFilter(outChromagram);
+    }
 }
 
 /**
@@ -276,14 +279,13 @@ void ChromaAnalyzer::applyMedianFilter(juce::AudioBuffer<float> &chroma) {
     juce::AudioBuffer<float> ogChroma;
     ogChroma.makeCopyOf(chroma);
 
-    const int medianWindow = 5;
-    const int medianMid = medianWindow / 2;
+    const int medianWindowSize = medianWindow;
+    const int medianMid = medianWindowSize / 2;
     const int maxFrames = chroma.getNumChannels();
     int currentIndex = 0;
     float binMedian = 0.0f;
 
-    std::array<float, (size_t)medianWindow> currentValues;
-    currentValues.fill(0.0f);
+    std::vector<float> currentValues(medianWindowSize, 0.0f);
 
     for (int frame = 0; frame < maxFrames; frame++) {
         float* outputFrame = chroma.getWritePointer(frame);

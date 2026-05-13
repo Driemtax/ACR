@@ -6,7 +6,7 @@
 
 class ChromaAnalyzer {
     public:
-    ChromaAnalyzer(float sampleRate, float fftSize, float s, int chromaRes);
+    ChromaAnalyzer(float sampleRate, float fftSize, float s, int chromaRes, int medianWindow, bool medianFilter);
     ~ChromaAnalyzer() = default;
 
     void processFullSpectogram(const juce::AudioBuffer<float> &spectogram, juce::AudioBuffer<float> &outChromagram);
@@ -50,6 +50,9 @@ class ChromaAnalyzer {
     std::vector<float> binMids;
     // Lookup table for harmonic weights since those are independent of frequencies
     std::vector<float> harmonicWeights;
+
+    int medianWindow = 5;
+    bool medianFilter = true;
 
 
 };

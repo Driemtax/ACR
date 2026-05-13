@@ -108,6 +108,10 @@ MainComponent::MainComponent() : audioSetupComp(audioEngine.getDeviceManager()
             Test tester;
             Test::TestConfig config;
             config.testName = "Baseline_Run_1";
+            config.medianFilter = false;
+            config.medianWindowSize = 5;
+            config.similarityThreshold = 0.8f;
+            config.s = 0.6f;
 
             juce::File testDataDir("C:/Users/a930084/OneDrive - ATOS/Dokumente/ACR_App");
             juce::File outputDir("C:/dev/ACR/TestResults");
