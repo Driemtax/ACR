@@ -1,20 +1,14 @@
 #include "MainComponent.h"
 #include "Audio/AudioEngine.h"
 #include "DSP/ChordAnalyzer.h"
-#include "DSP/ChromaAnalyzer.h"
-#include "DSP/Classificator.h"
-#include "juce_audio_basics/juce_audio_basics.h"
-#include "juce_audio_formats/juce_audio_formats.h"
+#include "Testing/Test.h"
 #include "juce_audio_utils/juce_audio_utils.h"
 #include "juce_core/juce_core.h"
 #include "juce_events/juce_events.h"
 #include "juce_graphics/juce_graphics.h"
 #include "juce_gui_basics/juce_gui_basics.h"
-#include <iostream>
 #include <memory>
-#include <ostream>
 #include <thread>
-#include <vector>
 
 const int WIDTH = 800;
 const int HEIGHT = 800;
@@ -45,6 +39,9 @@ MainComponent::MainComponent() : audioSetupComp(audioEngine.getDeviceManager()
 
     // File selection
     addAndMakeVisible(fileButton);
+
+    // Test button
+    addAndMakeVisible(testButton);
 
     loadingText.setJustificationType(juce::Justification::centred);
     loadingText.setColour(juce::Label::textColourId, juce::Colours::orange);
@@ -96,6 +93,39 @@ MainComponent::MainComponent() : audioSetupComp(audioEngine.getDeviceManager()
               updateTransportState();
           }
         });
+    };
+
+    testButton.onClick = [this] {
+        testButton.setEnabled(false);
+        loadingText.setText("Running Tests...", juce::dontSendNotification);
+        loadingText.setVisible(true);
+        analyzeButton.setEnabled(false);
+        fileButton.setEnabled(false);
+        playButton.setEnabled(false);
+        recordButton.setEnabled(false);
+
+        std::thread([this]() {
+            Test tester;
+            Test::TestConfig config;
+            config.testName = "Baseline_Run_1";
+
+            juce::File testDataDir("C:/Users/a930084/OneDrive - ATOS/Dokumente/ACR_App");
+            juce::File outputDir("C:/dev/ACR/TestResults");
+
+            if (!outputDir.exists()) outputDir.createDirectory();
+
+            tester.runTests(config, testDataDir, outputDir);
+
+            // Update GUI, when Tests have finished
+            juce::MessageManager::callAsync([this]() {
+               loadingText.setText("Tests Finished!", juce::dontSendNotification);
+               testButton.setEnabled(true);
+               recordButton.setEnabled(true);
+               playButton.setEnabled(true);
+               analyzeButton.setEnabled(true);
+               fileButton.setEnabled(true);
+            });
+        }).detach();
     };
 
     updateTransportState();
@@ -193,6 +223,8 @@ void MainComponent::resized()
     chromaDisplay.setBounds(spectoWidth + 10, 430, spectoWidth, 350);
 
     fileButton.setBounds(620, 380, 120, 40);
+
+    testButton.setBounds(780, 380, 120, 40);
 }
 
 void MainComponent::runAnalysisOffline() {

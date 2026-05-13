@@ -43,6 +43,8 @@ target_sources(ACR PRIVATE
     Source/DSP/Classificator.cpp
     Source/DSP/ChordAnalyzer.h
     Source/DSP/ChordAnalyzer.cpp
+    Source/Testing/Test.h
+    Source/Testing/Test.cpp
 )
 
 # ==============================================================================

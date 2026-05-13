@@ -63,6 +63,9 @@ private:
     juce::TextButton fileButton { "Open File " };
     std::unique_ptr<juce::FileChooser> fileChooser;
 
+    // Test Button
+    juce::TextButton testButton { "Test" };
+
     void updateTransportState();
     void runAnalysisOffline();
 

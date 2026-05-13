@@ -8,6 +8,7 @@
 
 #include <JuceHeader.h>
 #include "MainComponent.h"
+#include "juce_core/juce_core.h"
 
 #if JUCE_WINDOWS
     #include <windows.h>
@@ -30,6 +31,7 @@ public:
     {
         // This method is where you should put your application's initialisation code..
 
+
         #if JUCE_WINDOWS && JUCE_DEBUG
             AllocConsole();
             FILE* dummy;
@@ -37,6 +39,8 @@ public:
             freopen_s(&dummy, "CONOUT$", "w", stderr);
         #endif
 
+        // focus window on startup
+        juce::Process::makeForegroundProcess();
         mainWindow.reset (new MainWindow (getApplicationName()));
     }
 
