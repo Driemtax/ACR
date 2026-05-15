@@ -18,6 +18,7 @@ class ChordAnalyzer {
         std::vector<std::vector<float>> spectogramData;
         juce::AudioBuffer<float> chromagramData;
         std::vector<Classificator::ChordSegment> chordSegments;
+        std::vector<int> rawClassifications;
         double sampleRate;
         int hopSize;
       };

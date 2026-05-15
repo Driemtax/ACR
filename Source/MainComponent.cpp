@@ -108,7 +108,7 @@ MainComponent::MainComponent() : audioSetupComp(audioEngine.getDeviceManager()
             Test tester;
             Test::TestConfig config;
             config.testName = "Baseline_Run_1";
-            config.medianFilter = false;
+            config.medianFilter = true;
             config.medianWindowSize = 5;
             config.similarityThreshold = 0.8f;
             config.s = 0.6f;

@@ -232,8 +232,14 @@ void ChromaAnalyzer::normalizeBins(juce::AudioBuffer<float> &outChroma) {
   int frameCount = outChroma.getNumChannels();
   int binCount = outChroma.getNumSamples();
 
+  float globalMax = 0.0f;
+  for (int i = 0; i < frameCount; i++) {
+      float frameMax = outChroma.getMagnitude(i, 0, binCount);
+      if (frameMax > globalMax) globalMax = frameMax;
+  }
+
   float maxBinVal = 0.0;
-  float noiseGate = 700.0f;
+  float noiseGate = globalMax * 0.1f;
 
   // Divide every bin by the highestValue
   // All Frames

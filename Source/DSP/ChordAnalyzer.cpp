@@ -1,6 +1,7 @@
 #include "ChordAnalyzer.h"
 #include "Classificator.h"
 #include "juce_audio_formats/juce_audio_formats.h"
+#include <algorithm>
 #include <memory>
 
 ChordAnalyzer::ChordAnalyzer() : classifier(0.8f) {}
@@ -81,6 +82,7 @@ ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
   result.spectogramData = std::move(spectogramData);
   result.chromagramData = std::move(chromagram);
   result.chordSegments = std::move(chordSegments);
+  result.rawClassifications = std::move(classifiedFrames);
   result.sampleRate = spectoAnalyzer.getSampleRate();
   result.hopSize = spectoAnalyzer.getHopSize();
 
