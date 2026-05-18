@@ -1,7 +1,7 @@
 #include "MainComponent.h"
 #include "Audio/AudioEngine.h"
 #include "DSP/ChordAnalyzer.h"
-#include "Testing/Test.h"
+#include "TestSetup/Test.h"
 #include "juce_audio_utils/juce_audio_utils.h"
 #include "juce_core/juce_core.h"
 #include "juce_events/juce_events.h"

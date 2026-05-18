@@ -5,7 +5,7 @@
 #include "Classificator.h"
 #include "ChromaAnalyzer.h"
 #include "SpectogramAnalyzer.h"
-#include "../Testing/Test.h"
+#include "../TestSetup/Test.h"
 #include "juce_audio_basics/juce_audio_basics.h"
 
 class ChordAnalyzer {
