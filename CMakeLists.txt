@@ -11,6 +11,7 @@ project(ACR VERSION 0.0.1)
 # ==============================================================================
 add_subdirectory("C:/dev/ACR/JUCE" JUCE)
 
+
 # ==============================================================================
 # 2. Die ausführbare GUI-Anwendung erstellen
 # ==============================================================================
@@ -18,6 +19,18 @@ juce_add_gui_app(ACR
     # PRODUCT_NAME "Test_BA"
     # BUNDLE_ID    com.deinname.test_ba
     # COMPANY_NAME "Dein Name"
+)
+
+
+# ==============================================================================
+# 2. ONNX Integration
+# ==============================================================================
+target_include_directories(ACR PRIVATE
+  "C:/Test/ML/onnxruntime-win-x64-1.26.0/include"
+)
+
+target_link_directories(ACR PRIVATE
+  "C:/Test/ML/onnxruntime-win-x64-1.26.0/lib"
 )
 
 # ==============================================================================
@@ -76,6 +89,7 @@ target_link_libraries(ACR PRIVATE
     juce::juce_recommended_config_flags
     juce::juce_recommended_lto_flags
     juce::juce_recommended_warning_flags
+    onnxruntime.lib
 )
 
 # Hiermit wird der JUCEHeader.h generiert (optional, aber Projucer nutzt ihn oft)

@@ -5,6 +5,7 @@
 #include "juce_audio_utils/juce_audio_utils.h"
 #include "juce_core/juce_core.h"
 #include <JuceHeader.h>
+#include <onnxruntime_cxx_api.h>
 #include <atomic>
 #include <memory>
 
@@ -70,6 +71,11 @@ private:
     // File
     juce::String filename = "recording.wav";
     juce::File currentFile;
+
+
+    // ML Tests
+
+    void loadModel();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioEngine)
 };

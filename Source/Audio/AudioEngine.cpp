@@ -3,6 +3,10 @@
 #include "juce_audio_devices/juce_audio_devices.h"
 #include "juce_audio_formats/juce_audio_formats.h"
 #include "juce_core/juce_core.h"
+#include "juce_core/system/juce_PlatformDefs.h"
+#include "onnxruntime_c_api.h"
+#include "onnxruntime_cxx_api.h"
+#include <cstddef>
 #include <memory>
 
 const String appDirName = "ACR_App";
@@ -35,6 +39,9 @@ AudioEngine::AudioEngine()
     if (currentFile.existsAsFile()) {
         thumbnail.setSource(new juce::FileInputSource(currentFile));
     }
+
+    // ML Testing
+    loadModel();
 }
 
 AudioEngine::~AudioEngine()
@@ -233,5 +240,45 @@ void AudioEngine::setAudioFile(const juce::File& file) {
     if (file.existsAsFile()) {
         currentFile = file;
         thumbnail.setSource(new juce::FileInputSource(currentFile));
+    }
+}
+
+void AudioEngine::loadModel() {
+    try {
+    Ort::Env ortEnv;
+    std::unique_ptr<Ort::Session> ortSession;
+
+    ortEnv = Ort::Env(ORT_LOGGING_LEVEL_WARNING, "DeepChromaEnv");
+
+    // options
+    Ort::SessionOptions sessionOptions;
+    sessionOptions.SetIntraOpNumThreads(1);
+    sessionOptions.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+
+    const wchar_t* modelPath = L"C:\\Test\\ML\\deep_chroma.onnx";
+
+    // import model to ram
+    ortSession = std::make_unique<Ort::Session>(ortEnv, modelPath, sessionOptions);
+
+    std::cout << "ERFOLG: ONNX Model loaded successfully into ram." << std::endl;
+
+    // Debug verification
+    size_t numInputNodes = ortSession->GetInputCount();
+    std::cout << "Count of input nodes: " << numInputNodes << std::endl;
+
+    // Wir holen uns die Typ-Informationen des ersten (und einzigen) Inputs (Index 0)
+    Ort::TypeInfo inputTypeInfo = ortSession->GetInputTypeInfo(0);
+    auto tensorInfo = inputTypeInfo.GetTensorTypeAndShapeInfo();
+
+    // Wir fragen das Array nach seinen Dimensionen
+    std::vector<int64_t> inputDims = tensorInfo.GetShape();
+
+    std::cout << "Shape der Input Node 0: " << std::endl;
+    for (size_t i = 0; i < inputDims.size(); i++)
+    {
+        std::cout << "Dimension " << i << ": " << inputDims[i] << std::endl;
+    }
+    } catch (const Ort::Exception &e) {
+        std::cout << "ERROR loading the ONNX model: " << e.what();
     }
 }
