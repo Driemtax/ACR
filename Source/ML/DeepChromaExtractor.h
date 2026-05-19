@@ -1,0 +1,25 @@
+#pragma once
+
+#include "juce_audio_basics/juce_audio_basics.h"
+#include <JuceHeader.h>
+#include <memory>
+#include <onnxruntime_cxx_api.h>
+
+#include "../DSP/ChromaExtractorInterface.h"
+
+class DeepChromaExtractor : ChromaExtractorInterface {
+    public:
+        DeepChromaExtractor();
+        ~DeepChromaExtractor() = default;
+
+        void extractChroma(const juce::AudioBuffer<float> &spectogram, juce::AudioBuffer<float> &chroma) override;
+    private:
+       void loadModel();
+
+       const wchar_t* modelPath = L"C:\\Test\\ML\\deep_chroma.onnx";
+
+       // onnx config
+       Ort::Env ortEnv;
+       std::unique_ptr<Ort::Session> ortSession;
+       Ort::SessionOptions sessionOptions;
+};

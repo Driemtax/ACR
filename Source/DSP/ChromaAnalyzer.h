@@ -1,15 +1,16 @@
 #pragma once
 
+#include "ChromaExtractorInterface.h"
 #include "juce_audio_basics/juce_audio_basics.h"
 #include <JuceHeader.h>
 #include <vector>
 
-class ChromaAnalyzer {
+class ChromaAnalyzer : ChromaExtractorInterface {
     public:
     ChromaAnalyzer(float sampleRate, float fftSize, float s, int chromaRes, int medianWindow, bool medianFilter);
     ~ChromaAnalyzer() = default;
 
-    void processFullSpectogram(const juce::AudioBuffer<float> &spectogram, juce::AudioBuffer<float> &outChromagram);
+    void extractChroma(const juce::AudioBuffer<float> &spectogram, juce::AudioBuffer<float> &chroma) override;
     int getChromaBinSize() const;
 
     private:

@@ -11,6 +11,11 @@ public:
     int method = 0;
     juce::String testName = "";
 
+    // FFT
+    int fftSize = 4096;
+    int fftOrder = 12;
+    int hopSize = 512;
+
     // flags
     bool medianFilter = false;
     int medianWindowSize = 5;

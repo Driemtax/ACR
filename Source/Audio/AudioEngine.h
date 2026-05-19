@@ -72,10 +72,5 @@ private:
     juce::String filename = "recording.wav";
     juce::File currentFile;
 
-
-    // ML Tests
-
-    void loadModel();
-
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioEngine)
 };

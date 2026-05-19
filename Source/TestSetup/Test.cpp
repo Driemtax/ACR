@@ -129,7 +129,7 @@ juce::var Test::createJSONForTrack(const juce::String &songName,
 
         juce::Array<juce::var> framesArray;
         size_t gtIndex = 0;
-        int totalFrames = predictions.size();
+        int totalFrames = predictions.size(); // size_t hier nehmen
 
         for (int f = 0; f < totalFrames; f++) {
             double frameTimeSec = (f * hopSize) / sampleRate;

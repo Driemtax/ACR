@@ -1,5 +1,4 @@
 #include "SpectogramAnalyzer.h"
-#include "SpectogramAnalyzer.h"
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_dsp/juce_dsp.h"
 #include <vector>
@@ -7,7 +6,14 @@
 SpectogramAnalyzer::SpectogramAnalyzer(int order)
     : fftOrder(order),
     fftSize(1 << order),
-    fft(order) {}
+    fft(order),
+    hopSize(512) {}
+
+SpectogramAnalyzer::SpectogramAnalyzer(Test::TestConfig &config)
+   : fftOrder(config.fftOrder),
+   fftSize(config.fftSize),
+   fft(config.fftOrder),
+   hopSize(config.hopSize) {}
 
     /**
      * @brief Processes a full audio file and generates its spectrogram.
@@ -20,9 +26,12 @@ SpectogramAnalyzer::SpectogramAnalyzer(int order)
      * @param sampleRate    The sample rate of the audio data.
      * @return              A 2D vector representing the spectrogram, where each inner vector contains the magnitude bins for a single timeframe.
      */
-    std::vector<std::vector<float>> SpectogramAnalyzer::processFullFile(const juce::AudioBuffer<float>& fullAudioFile, double sampleRate)
+    juce::AudioBuffer<float> SpectogramAnalyzer::processFullFile(const juce::AudioBuffer<float>& fullAudioFile, double sampleRate)
     {
-        std::vector<std::vector<float>> spectogram;
+        std::vector<float> frameMagnitudes;
+
+        int numBins = fftSize / 2;
+        int numFrames = 0;
 
         // 1. Normalize everything between values [-1.0, 1.0]
         juce::AudioBuffer<float> workingBuffer = fullAudioFile;
@@ -38,15 +47,26 @@ SpectogramAnalyzer::SpectogramAnalyzer(int order)
         const float* monoData = workingBuffer.getReadPointer(0);
         const int totalSamples = workingBuffer.getNumSamples();
 
+        // calculate size of spectogram
+        if (totalSamples >= fftSize) {
+
+            numFrames = 1 + (totalSamples - fftSize) / hopSize;
+        }
+
+        juce::AudioBuffer<float> spectogram(numFrames, numBins);
+
         // 2. Short-Time Fourier Transform with Hop Size 50%
-        int hopSize = 512;
 
         // Hopping prevents samples to get "lost" due to the windowing function
         // for further details see docs/DSP
+        int frameIndex = 0;
         for (int startIdx = 0; startIdx + fftSize <= totalSamples; startIdx += hopSize) {
             // Chunk audio into frames
-            std::vector<float> frameMagnitudes = processSingleFrame(monoData + startIdx);
-            spectogram.push_back(std::move(frameMagnitudes));
+            frameMagnitudes = processSingleFrame(monoData + startIdx);
+
+            juce::FloatVectorOperations::copy(spectogram.getWritePointer(frameIndex),
+                                            frameMagnitudes.data(), numBins);
+            frameIndex++;
         }
 
         return spectogram;

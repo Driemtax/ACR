@@ -8,7 +8,7 @@
 
 ChromaAnalyzer::ChromaAnalyzer(float sampleRate, float fftSize, float s, int chromaRes, int medianWindow, bool medianFilter)
     : fftBinFrequencies(static_cast<int>(fftSize / 2)),
-      binMids(chromaSize * resolution),
+      binMids(chromaSize * chromaRes),
       harmonicWeights(8),
       resolution(chromaRes),
       s(s),
@@ -39,7 +39,7 @@ ChromaAnalyzer::ChromaAnalyzer(float sampleRate, float fftSize, float s, int chr
  * @param spectogram A constant reference to the input audio buffer containing the spectrogram data.
  * @param outChromagram A reference to the output audio buffer where the computed and filtered chromagram will be stored.
  */
-void ChromaAnalyzer::processFullSpectogram(const juce::AudioBuffer<float> &spectogram, juce::AudioBuffer<float> &outChromagram) {
+void ChromaAnalyzer::extractChroma(const juce::AudioBuffer<float> &spectogram, juce::AudioBuffer<float> &outChromagram) {
     const float* currentFrame;
 
     // Iterate over every frame and calculate all chroma bins
@@ -83,7 +83,7 @@ void ChromaAnalyzer::processFrame(const float* currentFrame, int frameNum, juce:
             squaredMag = p.magnitude * p.magnitude;
             // Iterate over 8 harmonics
             for (int h = 0; h < 8; h++) {
-                dist = calculateDistance(p.frequency / h+1, binMids[n]);
+                dist = calculateDistance(p.frequency / h+1, binMids[n]); // brauche ich hier Klammer um h+1? Best Practice auf jeden Fall Klammer setzen damit es beim lesen klar wird.
                 freqWeight = calculateWeightFreq(n, dist);
                 harmonicWeight = harmonicWeights[h];
 

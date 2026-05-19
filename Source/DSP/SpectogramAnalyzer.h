@@ -7,26 +7,30 @@
 #include <juce_dsp/juce_dsp.h>
 #include <vector>
 
+#include "../TestSetup/Test.h"
+
 class SpectogramAnalyzer
 {
   public:
   SpectogramAnalyzer(int fftOrder = 12);
+  SpectogramAnalyzer(Test::TestConfig &config);
   ~SpectogramAnalyzer() = default;
 
   // 2D-Array with spectogram for full audio data
-  std::vector<std::vector<float>> processFullFile(const juce::AudioBuffer<float>& fullAudioFile, double sampleRate);
+  juce::AudioBuffer<float> processFullFile(const juce::AudioBuffer<float>& fullAudioFile, double sampleRate);
 
   double getSampleRate() {
       return 44100.0;
   }
 
   int getHopSize() {
-      return 512;
+      return hopSize;
   }
 
   private:
   int fftOrder;
   int fftSize;
+  int hopSize;
 
   juce::dsp::FFT fft;
   juce::dsp::WindowingFunction<float> window { static_cast<size_t>(fftSize), juce::dsp::WindowingFunction<float>::hann };

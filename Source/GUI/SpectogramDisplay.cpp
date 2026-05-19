@@ -1,4 +1,5 @@
 #include "SpectogramDisplay.h"
+#include "juce_audio_basics/juce_audio_basics.h"
 
 // =====================================================================================
 // Auxilary class to spawnm a new window of the needed size to display the
@@ -51,12 +52,12 @@ SpectogramDisplay::SpectogramDisplay() {
 // This function will be called from the thread analysing the audio, when the
 // Analysis has finished.
 void SpectogramDisplay::setSpectogramData(
-    const std::vector<std::vector<float>> &data) {
-  if (data.empty() || data[0].empty())
+    const juce::AudioBuffer<float> &data) {
+  if (data.hasBeenCleared())
     return;
 
-  int numFrames = (int)data.size();
-  int numBins = (int)data[0].size();
+  int numFrames = (int)data.getNumChannels();
+  int numBins = (int)data.getNumSamples();
 
   // create an image of size (numFrames * numBins)
   spectogramImage = juce::Image(juce::Image::RGB, numFrames, numBins, true);
@@ -64,8 +65,10 @@ void SpectogramDisplay::setSpectogramData(
   float minDb = 1000.0f;
   float maxDb = -1000.0f;
 
-  for (const auto &frame : data) {
-    for (float val : frame) {
+  for (int f = 0; f < numFrames; f++) {
+    const float *frame = data.getReadPointer(f);
+    for (int bin = 0; bin < numBins; bin++) {
+      float val = frame[bin];
       if (val < minDb)
         minDb = val;
       if (val > maxDb)
@@ -79,9 +82,9 @@ void SpectogramDisplay::setSpectogramData(
 
   // draw image pixel by pixel
   for (int x = 0; x < numFrames; x++) {
-    const auto &frame = data[(size_t)x];
+    const auto &frame = data.getReadPointer(x);
     for (int y = 0; y < numBins; y++) {
-      float dbValue = frame[(size_t)y];
+      float dbValue = frame[y];
       float normalizedValue = (dbValue - minDb) / dbRange;
 
       // This is to dampen the noise. Everything near to 1 stays there

@@ -56,8 +56,11 @@ target_sources(ACR PRIVATE
     Source/DSP/Classificator.cpp
     Source/DSP/ChordAnalyzer.h
     Source/DSP/ChordAnalyzer.cpp
+    Source/DSP/ChromaExtractorInterface.h
     Source/TestSetup/Test.h
     Source/TestSetup/Test.cpp
+    Source/ML/DeepChromaExtractor.h
+    Source/ML/DeepChromaExtractor.cpp
 )
 
 # ==============================================================================
