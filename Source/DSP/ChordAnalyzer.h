@@ -3,18 +3,17 @@
 #include <JuceHeader.h>
 #include <memory>
 #include <vector>
+#include "AnalyzerConfig.h"
 #include "ChromaExtractorInterface.h"
 #include "Classificator.h"
 #include "ChromaAnalyzer.h"
 #include "../ML/DeepChromaExtractor.h"
 #include "SpectogramAnalyzer.h"
-#include "../TestSetup/Test.h"
 #include "juce_audio_basics/juce_audio_basics.h"
 
 class ChordAnalyzer {
   public:
-      ChordAnalyzer();
-      ChordAnalyzer(Test::TestConfig &config);
+      ChordAnalyzer(AnalyzerConfig &config);
       ~ChordAnalyzer() = default;
 
       struct AnalysisResult {

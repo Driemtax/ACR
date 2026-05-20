@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../DSP/Classificator.h"
+#include "../DSP/AnalyzerConfig.h"
 #include "juce_core/juce_core.h"
 #include <JuceHeader.h>
 #include <vector>
@@ -33,8 +34,8 @@ public:
   Test() = default;
   ~Test() = default;
 
-  void runTests(TestConfig &config, const juce::File &testDataDirectory,
-                const juce::File &outputDirectory) const;
+  void runTests(AnalyzerConfig &config, const juce::File &testDataDirectory,
+                const juce::File &outputDirectory, const juce::String testFileName) const;
 
 private:
   struct GroundTruthLabel {

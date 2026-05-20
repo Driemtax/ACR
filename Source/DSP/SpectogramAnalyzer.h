@@ -1,5 +1,6 @@
 #pragma once
 
+#include "AnalyzerConfig.h"
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_core/system/juce_PlatformDefs.h"
 #include <JuceHeader.h>
@@ -7,13 +8,11 @@
 #include <juce_dsp/juce_dsp.h>
 #include <vector>
 
-#include "../TestSetup/Test.h"
-
 class SpectogramAnalyzer
 {
   public:
   SpectogramAnalyzer(int fftOrder = 12);
-  SpectogramAnalyzer(Test::TestConfig &config);
+  SpectogramAnalyzer(AnalyzerConfig &config);
   ~SpectogramAnalyzer() = default;
 
   // 2D-Array with spectogram for full audio data

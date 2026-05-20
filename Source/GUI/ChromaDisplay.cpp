@@ -142,11 +142,14 @@ void ChromaDisplay::setChromaData(
   if (numFrames == 0 || numBins == 0)
     return;
 
+  int pixelsPerFrame = std::max(1, 800 / std::max(1, numFrames));
+  int imageWidth = numFrames * pixelsPerFrame;
+
   // Every bin is 66 pixel high, e.g. 12*66 = 792 pixel total
   int pixelsPerBin = 66;
   int imageHeight = numBins * pixelsPerBin;
 
-  chromaImage = juce::Image(juce::Image::RGB, numFrames, imageHeight, true);
+  chromaImage = juce::Image(juce::Image::RGB, imageWidth, imageHeight, true);
 
   // draw pixel by pixel
   for (int frame = 0; frame < numFrames; ++frame) {
@@ -173,7 +176,11 @@ void ChromaDisplay::setChromaData(
       for (int py = 0; py < pixelsPerBin; ++py) {
         // invert y-axis, so that low sounds (Bin 0) are at the bottom
         int yPos = imageHeight - 1 - (bin * pixelsPerBin + py);
-        chromaImage.setPixelAt(frame, yPos, pColour);
+
+        // draw every frame pixelsPerFrame times
+        for (int px = 0; px < pixelsPerFrame; px++) {
+            chromaImage.setPixelAt(frame * pixelsPerFrame + px, yPos, pColour);
+        }
       }
     }
   }

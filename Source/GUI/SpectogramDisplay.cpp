@@ -1,5 +1,6 @@
 #include "SpectogramDisplay.h"
 #include "juce_audio_basics/juce_audio_basics.h"
+#include <algorithm>
 
 // =====================================================================================
 // Auxilary class to spawnm a new window of the needed size to display the
@@ -59,8 +60,12 @@ void SpectogramDisplay::setSpectogramData(
   int numFrames = (int)data.getNumChannels();
   int numBins = (int)data.getNumSamples();
 
-  // create an image of size (numFrames * numBins)
-  spectogramImage = juce::Image(juce::Image::RGB, numFrames, numBins, true);
+  // dynamic scaling of width: at least 800 pixel
+  int pixelsPerFrame = std::max(1, 800 / std::max(1, numFrames));
+  int imageWidth = numFrames * pixelsPerFrame;
+
+  // create an image of size (imageWidth * numBins)
+  spectogramImage = juce::Image(juce::Image::RGB, imageWidth, numBins, true);
 
   float minDb = 1000.0f;
   float maxDb = -1000.0f;
@@ -97,9 +102,12 @@ void SpectogramDisplay::setSpectogramData(
               .interpolatedWith(juce::Colours::white,
                                 std::max(0.0f, contrastValue * 2.0f - 1.0f));
 
-      // the axis in graphics and audio spectogram are mirrored on the y-axis,
-      // we need to mirror it back.
-      spectogramImage.setPixelAt(x, numBins - 1 - y, pixelColour);
+      // draw this pixelsPerFrame times
+      for (int px = 0; px < pixelsPerFrame; px++) {
+        // the axis in graphics and audio spectogram are mirrored on the y-axis,
+        // we need to mirror it back.
+        spectogramImage.setPixelAt(x * pixelsPerFrame + px, numBins - 1 - y, pixelColour);
+      }
     }
   }
 

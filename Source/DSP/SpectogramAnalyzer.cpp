@@ -1,4 +1,5 @@
 #include "SpectogramAnalyzer.h"
+#include "AnalyzerConfig.h"
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_dsp/juce_dsp.h"
 #include <vector>
@@ -9,7 +10,7 @@ SpectogramAnalyzer::SpectogramAnalyzer(int order)
     fft(order),
     hopSize(512) {}
 
-SpectogramAnalyzer::SpectogramAnalyzer(Test::TestConfig &config)
+SpectogramAnalyzer::SpectogramAnalyzer(AnalyzerConfig &config)
    : fftOrder(config.fftOrder),
    fftSize(config.fftSize),
    fft(config.fftOrder),

@@ -5,8 +5,8 @@
 #include <iostream>
 #include <vector>
 
-void Test::runTests(Test::TestConfig &config, const juce::File &testDataDirectory,
-    const juce::File &outputDirectory) const {
+void Test::runTests(AnalyzerConfig &config, const juce::File &testDataDirectory,
+    const juce::File &outputDirectory, const juce::String testFileName) const {
 
         juce::DynamicObject::Ptr jsonRoot = new juce::DynamicObject();
         juce::Array<juce::var> allSongsArray;
@@ -56,12 +56,12 @@ void Test::runTests(Test::TestConfig &config, const juce::File &testDataDirector
             overallAccuracy = static_cast<float>(globalCorrectFrames) / static_cast<float>(globalTotalFrames);
         }
 
-        jsonRoot->setProperty("test_name", config.testName);
+        jsonRoot->setProperty("test_name", testFileName);
         jsonRoot->setProperty("overall_accuracy", overallAccuracy);
         jsonRoot->setProperty("total_frames_analyzed", globalTotalFrames);
         jsonRoot->setProperty("songs", allSongsArray);
 
-        juce::File outputFile = outputDirectory.getChildFile("results_" + config.testName + ".json");
+        juce::File outputFile = outputDirectory.getChildFile("results_" + testFileName + ".json");
         saveResultsToJSON(juce::var(jsonRoot.get()), outputFile);
 
         std::cout << "Test-Run Finished! Results were saved: " << outputFile.getFullPathName() << std::endl;

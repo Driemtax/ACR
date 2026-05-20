@@ -1,5 +1,6 @@
 #include "MainComponent.h"
 #include "Audio/AudioEngine.h"
+#include "DSP/AnalyzerConfig.h"
 #include "DSP/ChordAnalyzer.h"
 #include "TestSetup/Test.h"
 #include "juce_audio_utils/juce_audio_utils.h"
@@ -72,6 +73,18 @@ MainComponent::MainComponent() : audioSetupComp(audioEngine.getDeviceManager()
         spectogramDisplay.setVisible(false);
         chromaDisplay.setVisible(false);
 
+        // get config parameters from UI
+        AnalyzerConfig config;
+
+        // change to ui parameters later
+        if (true) {
+            config.setToDeepLearningDefaults();
+        }
+
+        // initialize chordAnalyzer
+        chordAnalyzer = std::make_unique<ChordAnalyzer>(config);
+
+
         std::thread([this]() {
             runAnalysisOffline();
         }).detach();
@@ -106,8 +119,8 @@ MainComponent::MainComponent() : audioSetupComp(audioEngine.getDeviceManager()
 
         std::thread([this]() {
             Test tester;
-            Test::TestConfig config;
-            config.testName = "Baseline_Run_1";
+            AnalyzerConfig config;
+            const juce::String testFileName = "Baseline_Run_1";
             config.medianFilter = true;
             config.medianWindowSize = 5;
             config.similarityThreshold = 0.8f;
@@ -118,7 +131,7 @@ MainComponent::MainComponent() : audioSetupComp(audioEngine.getDeviceManager()
 
             if (!outputDir.exists()) outputDir.createDirectory();
 
-            tester.runTests(config, testDataDir, outputDir);
+            tester.runTests(config, testDataDir, outputDir, testFileName);
 
             // Update GUI, when Tests have finished
             juce::MessageManager::callAsync([this]() {
@@ -233,7 +246,7 @@ void MainComponent::resized()
 
 void MainComponent::runAnalysisOffline() {
    auto file = audioEngine.getAudioFilePath();
-   auto result = chordAnalyzer.runAnalysis(file);
+   auto result = chordAnalyzer->runAnalysis(file);
    // This functions runs in a seperate thread and notifys the calling thread (GUI-Thread) when it has finished.
    // Then this function will be executed.
    juce::MessageManager::callAsync([this, res = std::move(result)]() {

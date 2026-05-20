@@ -3,7 +3,6 @@
 #include "DSP/ChordAnalyzer.h"
 #include "GUI/ChromaDisplay.h"
 #include "GUI/SpectogramDisplay.h"
-#include "DSP/SpectogramAnalyzer.h"
 #include "juce_audio_utils/juce_audio_utils.h"
 #include "juce_core/juce_core.h"
 #include "juce_events/juce_events.h"
@@ -51,13 +50,12 @@ private:
     // loading animation for spectogram
     juce::Label loadingText { "Loading", "Analyse spectogram..." };
     SpectogramDisplay spectogramDisplay;
-    SpectogramAnalyzer spectogramAnalyzer;
 
     // Chromagram
     ChromaDisplay chromaDisplay;
 
     // Classification
-    ChordAnalyzer chordAnalyzer;
+    std::unique_ptr<ChordAnalyzer> chordAnalyzer;
 
     // File selection
     juce::TextButton fileButton { "Open File " };

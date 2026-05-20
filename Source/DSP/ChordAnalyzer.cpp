@@ -1,13 +1,12 @@
 #include "ChordAnalyzer.h"
+#include "AnalyzerConfig.h"
 #include "ChromaAnalyzer.h"
 #include "Classificator.h"
 #include "SpectogramAnalyzer.h"
 #include "juce_audio_formats/juce_audio_formats.h"
 #include <memory>
 
-ChordAnalyzer::ChordAnalyzer() : classifier(0.8f) {}
-
-ChordAnalyzer::ChordAnalyzer(Test::TestConfig &config)
+ChordAnalyzer::ChordAnalyzer(AnalyzerConfig &config)
     : classifier(config.similarityThreshold),
     spectoAnalyzer(config),
     fftOrder(config.fftOrder),
@@ -18,7 +17,7 @@ ChordAnalyzer::ChordAnalyzer(Test::TestConfig &config)
     s(config.s),
     similarityThreshold(config.similarityThreshold),
     chromaRes(config.chromaRes),
-    useDeepLearning(config.useDeepChroma)
+    useDeepLearning(config.useDeepLearning)
     {}
 
 /**
@@ -57,6 +56,7 @@ ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
       spectogramData.hasBeenCleared() ? 0 : (int)spectogramData.getNumSamples();
 
   std::cout << "=== SPEKTOGRAMM BERECHNET ===" << std::endl;
+  std::cout << "FFT Size : " << fftSize << ", Hop Size: " << spectoAnalyzer.getHopSize() << std::endl;
   std::cout << "Anzahl Frames (Zeit): " << numFrames
             << std::endl;
   if (!spectogramData.hasBeenCleared()) {
@@ -66,6 +66,7 @@ ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
 
 
   if (useDeepLearning) {
+      std::cout << "Sample Rate in WAV File: " << reader->sampleRate << std::endl;
       chromaProcessor = std::make_unique<DeepChromaExtractor>(chromaRes * chromaSize);
   } else {
       chromaProcessor = std::make_unique<ChromaAnalyzer>(
