@@ -24,6 +24,8 @@ public:
     int chromaRes = 1;
     float s = 0.6f;
 
+    bool useDeepChroma = false;
+
     // Classification
     float similarityThreshold = 0.3f;
   };

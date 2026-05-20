@@ -7,12 +7,13 @@
 
 #include "../DSP/ChromaExtractorInterface.h"
 
-class DeepChromaExtractor : ChromaExtractorInterface {
+class DeepChromaExtractor : public ChromaExtractorInterface {
     public:
-        DeepChromaExtractor();
+        DeepChromaExtractor(int binSize);
         ~DeepChromaExtractor() = default;
 
         void extractChroma(const juce::AudioBuffer<float> &spectogram, juce::AudioBuffer<float> &chroma) override;
+        int getChromaBinSize() const override;
     private:
        void loadModel();
 
@@ -22,4 +23,7 @@ class DeepChromaExtractor : ChromaExtractorInterface {
        Ort::Env ortEnv;
        std::unique_ptr<Ort::Session> ortSession;
        Ort::SessionOptions sessionOptions;
+
+       // chroma size
+       int chromaBinSize;
 };

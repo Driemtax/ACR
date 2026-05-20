@@ -8,4 +8,5 @@ class ChromaExtractorInterface {
       virtual ~ChromaExtractorInterface() = default;
 
       virtual void extractChroma(const juce::AudioBuffer<float> &spectogram, juce::AudioBuffer<float> &chroma) = 0;
+      virtual int getChromaBinSize() const = 0;
 };

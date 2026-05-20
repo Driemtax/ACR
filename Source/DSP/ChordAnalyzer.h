@@ -1,7 +1,9 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <memory>
 #include <vector>
+#include "ChromaExtractorInterface.h"
 #include "Classificator.h"
 #include "ChromaAnalyzer.h"
 #include "../ML/DeepChromaExtractor.h"
@@ -40,8 +42,9 @@ class ChordAnalyzer {
       float s = 0.6f;
       float similarityThreshold = 0.8f;
       int chromaRes = 1;
+      int chromaSize = 12;
 
       // Deep Chroma Extractor
-      DeepChromaExtractor deepChromaExtractor;
-
+      bool useDeepLearning = false;
+      std::unique_ptr<ChromaExtractorInterface> chromaProcessor;
 };

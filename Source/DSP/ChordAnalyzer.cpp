@@ -1,8 +1,8 @@
 #include "ChordAnalyzer.h"
+#include "ChromaAnalyzer.h"
 #include "Classificator.h"
 #include "SpectogramAnalyzer.h"
 #include "juce_audio_formats/juce_audio_formats.h"
-#include <algorithm>
 #include <memory>
 
 ChordAnalyzer::ChordAnalyzer() : classifier(0.8f) {}
@@ -17,7 +17,8 @@ ChordAnalyzer::ChordAnalyzer(Test::TestConfig &config)
     medianWindowSize(config.medianWindowSize),
     s(config.s),
     similarityThreshold(config.similarityThreshold),
-    chromaRes(config.chromaRes)
+    chromaRes(config.chromaRes),
+    useDeepLearning(config.useDeepChroma)
     {}
 
 /**
@@ -64,14 +65,18 @@ ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
   }
 
 
+  if (useDeepLearning) {
+      chromaProcessor = std::make_unique<DeepChromaExtractor>(chromaRes * chromaSize);
+  } else {
+      chromaProcessor = std::make_unique<ChromaAnalyzer>(
+          reader->sampleRate, fftSize, s, chromaRes, medianWindowSize, medianFilter);
+  }
+
   // Create Chromagram
-  ChromaAnalyzer chromaAnalyzer =
-      ChromaAnalyzer(reader->sampleRate, fftSize, s, chromaRes,
-                     medianWindowSize, medianFilter);
-  int chromaBins = chromaAnalyzer.getChromaBinSize();
+  int chromaBins = chromaProcessor->getChromaBinSize();
 
   auto chromagram = juce::AudioBuffer<float>(numFrames, chromaBins);
-  chromaAnalyzer.extractChroma(spectogramData, chromagram);
+  chromaProcessor->extractChroma(spectogramData, chromagram);
 
   // classify
   Classificator classifier = Classificator(similarityThreshold);

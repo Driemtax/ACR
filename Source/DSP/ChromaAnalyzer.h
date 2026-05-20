@@ -3,15 +3,16 @@
 #include "ChromaExtractorInterface.h"
 #include "juce_audio_basics/juce_audio_basics.h"
 #include <JuceHeader.h>
+#include <memory>
 #include <vector>
 
-class ChromaAnalyzer : ChromaExtractorInterface {
+class ChromaAnalyzer : public ChromaExtractorInterface {
     public:
     ChromaAnalyzer(float sampleRate, float fftSize, float s, int chromaRes, int medianWindow, bool medianFilter);
     ~ChromaAnalyzer() = default;
 
     void extractChroma(const juce::AudioBuffer<float> &spectogram, juce::AudioBuffer<float> &chroma) override;
-    int getChromaBinSize() const;
+    int getChromaBinSize() const override;
 
     private:
     // HPCP Parameters
@@ -23,6 +24,9 @@ class ChromaAnalyzer : ChromaExtractorInterface {
     // Resolution of Chromagram
     int resolution = 1;
     int chromaSize = 12;
+
+    // chroma interface
+    std::unique_ptr<ChromaExtractorInterface> chromaProcessor;
 
     // Reference Frequenz
     float f_ref = 261.626f; // C4

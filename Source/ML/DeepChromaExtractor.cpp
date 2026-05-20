@@ -8,7 +8,9 @@
 #include <memory>
 #include <vector>
 
-DeepChromaExtractor::DeepChromaExtractor() { loadModel(); }
+DeepChromaExtractor::DeepChromaExtractor(int binSize)
+    : chromaBinSize(binSize)
+{ loadModel(); }
 
 void DeepChromaExtractor::loadModel() {
   try {
@@ -47,3 +49,7 @@ void DeepChromaExtractor::loadModel() {
 void DeepChromaExtractor::extractChroma(
     const juce::AudioBuffer<float> &spectogram,
     juce::AudioBuffer<float> &chroma) {}
+
+int DeepChromaExtractor::getChromaBinSize() const {
+   return chromaBinSize;
+}
