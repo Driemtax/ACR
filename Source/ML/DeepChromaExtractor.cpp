@@ -85,8 +85,10 @@ void DeepChromaExtractor::extractChroma(
   // =================================================================================
   // 1. Logarithmic Filterbank Calculation (Extracting unique bins)
   // =================================================================================
-  // Those are the indices extracted from the madmom Library. The Calculation was one off which resulted in the classification beeing off by a semitone.
-  // I therefore decided to just hardcode the indices since those are wired in the weights and biases of the model and cannot change.
+  // Those are the indices extracted from the madmom Library. The Calculation
+  // was one off which resulted in the classification beeing off by a semitone.
+  // I therefore decided to just hardcode the indices since those are wired in
+  // the weights and biases of the model and cannot change.
   static const std::vector<int> logBinIndices = {
       13,  14,  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,
       27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  39,  40,  41,
@@ -97,7 +99,7 @@ void DeepChromaExtractor::extractChroma(
       212, 218, 225, 231, 238, 245, 252, 259, 267, 275, 283, 291, 300, 309,
       318, 327, 337, 346, 357, 367, 378};
 
-  int numLogBins = logBinIndices.size();
+  int numLogBins = static_cast<int>(logBinIndices.size());
 
   // Build the compressed log-spectogram (Frames x 105)
   std::vector<std::vector<float>> logSpectogram(
@@ -176,8 +178,8 @@ void DeepChromaExtractor::extractChroma(
 
     // Map Output to Chroma Buffer
     float *outputData = outputTensors.front().GetTensorMutableData<float>();
-    int outSize =
-        outputTensors.front().GetTensorTypeAndShapeInfo().GetElementCount();
+    int outSize = static_cast<int>(
+        outputTensors.front().GetTensorTypeAndShapeInfo().GetElementCount());
 
     float *chromaWrite = chroma.getWritePointer(t);
 

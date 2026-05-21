@@ -2,7 +2,6 @@
 
 #include "juce_audio_basics/juce_audio_basics.h"
 #include <JuceHeader.h>
-#include <vector>
 
 class SpectogramDisplay : public juce::Component {
 public:

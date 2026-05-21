@@ -1,6 +1,6 @@
 -xc++
 -std=c++17
 -I./cmake-build/ACR_artefacts/JuceLibraryCode
--I./JUCE/modules
+-I./cmake-build/_deps/juce-src/modules
 -IC:/Test/ML/onnxruntime-win-x64-1.26.0/include
 -DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1

@@ -7,18 +7,12 @@
 #include <memory>
 
 ChordAnalyzer::ChordAnalyzer(AnalyzerConfig &config)
-    : classifier(config.similarityThreshold),
-    spectoAnalyzer(config),
-    fftOrder(config.fftOrder),
-    fftSize(config.fftSize),
-    hopSize(config.hopSize),
-    medianFilter(config.medianFilter),
-    medianWindowSize(config.medianWindowSize),
-    s(config.s),
-    similarityThreshold(config.similarityThreshold),
-    chromaRes(config.chromaRes),
-    useDeepLearning(config.useDeepLearning)
-    {}
+    : classifier(config.similarityThreshold), spectoAnalyzer(config),
+      fftOrder(config.fftOrder), fftSize(config.fftSize),
+      hopSize(config.hopSize), medianFilter(config.medianFilter),
+      medianWindowSize(config.medianWindowSize), s(config.s),
+      similarityThreshold(config.similarityThreshold),
+      chromaRes(config.chromaRes), useDeepLearning(config.useDeepLearning) {}
 
 /**
  * Runs the complete chord analysis process on a given audio file.
@@ -48,29 +42,27 @@ ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
   reader->read(&buffer, 0, (int)reader->lengthInSamples, 0, true, true);
 
   // 2. Create Spectogram
-  auto spectogramData =
-      spectoAnalyzer.processFullFile(buffer, reader->sampleRate);
+  auto spectogramData = spectoAnalyzer.processFullFile(buffer);
 
-  int numFrames = (int)spectogramData.getNumChannels();
+  int numFrames = static_cast<int>(spectogramData.getNumChannels());
   int numBins =
       spectogramData.hasBeenCleared() ? 0 : (int)spectogramData.getNumSamples();
 
   std::cout << "=== SPEKTOGRAMM BERECHNET ===" << std::endl;
-  std::cout << "FFT Size : " << fftSize << ", Hop Size: " << spectoAnalyzer.getHopSize() << std::endl;
-  std::cout << "Anzahl Frames (Zeit): " << numFrames
-            << std::endl;
+  std::cout << "FFT Size : " << fftSize
+            << ", Hop Size: " << spectoAnalyzer.getHopSize() << std::endl;
+  std::cout << "Anzahl Frames (Zeit): " << numFrames << std::endl;
   if (!spectogramData.hasBeenCleared()) {
-    std::cout << "Anzahl Bins (Frequenz): " << numBins
-              << std::endl;
+    std::cout << "Anzahl Bins (Frequenz): " << numBins << std::endl;
   }
 
-
   if (useDeepLearning) {
-      std::cout << "Sample Rate in WAV File: " << reader->sampleRate << std::endl;
-      chromaProcessor = std::make_unique<DeepChromaExtractor>(chromaRes * chromaSize);
+    chromaProcessor =
+        std::make_unique<DeepChromaExtractor>(chromaRes * chromaSize);
   } else {
-      chromaProcessor = std::make_unique<ChromaAnalyzer>(
-          reader->sampleRate, fftSize, s, chromaRes, medianWindowSize, medianFilter);
+    chromaProcessor = std::make_unique<ChromaAnalyzer>(
+        static_cast<float>(reader->sampleRate), static_cast<float>(fftSize), s,
+        chromaRes, medianWindowSize, medianFilter);
   }
 
   // Create Chromagram
@@ -80,7 +72,6 @@ ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
   chromaProcessor->extractChroma(spectogramData, chromagram);
 
   // classify
-  Classificator classifier = Classificator(similarityThreshold);
   std::vector<int> classifiedFrames;
   classifiedFrames.resize(chromagram.getNumChannels());
   classifier.classifyFullChroma(chromagram, classifiedFrames);

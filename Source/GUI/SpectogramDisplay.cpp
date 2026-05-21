@@ -106,7 +106,8 @@ void SpectogramDisplay::setSpectogramData(
       for (int px = 0; px < pixelsPerFrame; px++) {
         // the axis in graphics and audio spectogram are mirrored on the y-axis,
         // we need to mirror it back.
-        spectogramImage.setPixelAt(x * pixelsPerFrame + px, numBins - 1 - y, pixelColour);
+        spectogramImage.setPixelAt(x * pixelsPerFrame + px, numBins - 1 - y,
+                                   pixelColour);
       }
     }
   }
@@ -114,7 +115,7 @@ void SpectogramDisplay::setSpectogramData(
   repaint();
 }
 
-void SpectogramDisplay::mouseDown(const juce::MouseEvent &e) {
+void SpectogramDisplay::mouseDown([[maybe_unused]] const juce::MouseEvent &e) {
   if (spectogramImage.isValid()) {
     int screenHeight = getParentMonitorArea().getHeight();
     new SpectogramWindow("High-Res Spectogram", spectogramImage, screenHeight);

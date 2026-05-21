@@ -9,8 +9,16 @@ project(ACR VERSION 0.0.1)
 # Falls JUCE im selben Ordner wie Test_BA liegt (z.B. C:/Users/a930084/dev/JUCE),
 # dann wäre der Pfad "../JUCE".
 # ==============================================================================
-add_subdirectory("C:/dev/ACR/JUCE" JUCE)
+#add_subdirectory("C:/dev/ACR/JUCE" JUCE)
+include(FetchContent)
 
+FetchContent_Declare(
+  juce
+  GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
+  GIT_TAG 8.0.12
+)
+
+FetchContent_MakeAvailable(juce)
 
 # ==============================================================================
 # 2. Die ausführbare GUI-Anwendung erstellen
