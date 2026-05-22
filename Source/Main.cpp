@@ -8,6 +8,8 @@
 
 #include "MainComponent.h"
 #include "juce_core/juce_core.h"
+#include "juce_graphics/juce_graphics.h"
+#include "juce_gui_basics/juce_gui_basics.h"
 #include <JuceHeader.h>
 
 #if JUCE_WINDOWS
@@ -15,11 +17,16 @@
 #include <windows.h>
 #endif
 
+const int MIN_WIDHT = 800;
+const int MIN_HEIGHT = 800;
+const int MAX_WIDTH = 10000;
+const int MAX_HEIGHT = 10000;
+
 //==============================================================================
-class Test_BAApplication : public juce::JUCEApplication {
+class AutomaticChordRecognition : public juce::JUCEApplication {
 public:
   //==============================================================================
-  Test_BAApplication() {}
+  AutomaticChordRecognition() {}
 
   const juce::String getApplicationName() override {
     return ProjectInfo::projectName;
@@ -87,10 +94,23 @@ public:
       setFullScreen(true);
 #else
       setResizable(true, true);
+      setResizeLimits(MIN_WIDHT, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT);
+
+      juce::Rectangle<int> screenArea = juce::Desktop::getInstance()
+                                            .getDisplays()
+                                            .getPrimaryDisplay()
+                                            ->userArea;
+      int startWidth =
+          juce::jmax(MIN_WIDHT, static_cast<int>(screenArea.getWidth() * 0.8f));
+      int startHeight = juce::jmax(
+          MIN_HEIGHT, static_cast<int>(screenArea.getHeight() * 0.8f));
+
+      setSize(startWidth, startHeight);
       centreWithSize(getWidth(), getHeight());
 #endif
 
       setVisible(true);
+      toFront(true);
     }
 
     void closeButtonPressed() override {
@@ -117,4 +137,4 @@ private:
 
 //==============================================================================
 // This macro generates the main() routine that launches the app.
-START_JUCE_APPLICATION(Test_BAApplication)
+START_JUCE_APPLICATION(AutomaticChordRecognition)
