@@ -236,7 +236,7 @@ float ChromaAnalyzer::calculateWeightFreq(float dist) const {
  */
 void ChromaAnalyzer::calculateHarmonicWeights() {
   for (int i = 0; i < harmonicWeights.size(); i++) {
-    harmonicWeights[i] = powf(s, i);
+    harmonicWeights[i] = powf(s, static_cast<float>(i));
   }
 }
 

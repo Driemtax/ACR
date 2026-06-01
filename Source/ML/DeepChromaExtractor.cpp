@@ -81,7 +81,6 @@ void DeepChromaExtractor::extractChroma(
   }
 
   int numFrames = spectogram.getNumChannels();
-  int numLinearBins = spectogram.getNumSamples();
   int numLogBins = static_cast<int>(MADMOM_FILTERBANK.size());
 
   // =================================================================================
