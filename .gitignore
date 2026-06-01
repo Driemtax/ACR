@@ -52,3 +52,5 @@ $RECYCLE.BIN/
 *.ilk
 
 TestResults/
+Scripts/
+Testfiles/
