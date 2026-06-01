@@ -2,6 +2,7 @@
 #include "Audio/AudioEngine.h"
 #include "DSP/AnalyzerConfig.h"
 #include "DSP/ChordAnalyzer.h"
+#include "GUI/ConfigPopup.h"
 #include "TestSetup/Test.h"
 #include "juce_audio_utils/juce_audio_utils.h"
 #include "juce_core/juce_core.h"
@@ -42,6 +43,9 @@ MainComponent::MainComponent()
   // Test button
   addAndMakeVisible(testButton);
 
+  // config Button
+  addAndMakeVisible(configButton);
+
   loadingText.setJustificationType(juce::Justification::centred);
   loadingText.setColour(juce::Label::textColourId, juce::Colours::orange);
   loadingText.setVisible(false);
@@ -72,11 +76,7 @@ MainComponent::MainComponent()
     spectogramDisplay.setVisible(false);
     chromaDisplay.setVisible(false);
 
-    // get config parameters from UI
-    AnalyzerConfig config;
-
-    // change to ui parameters later
-    if (true) {
+    if (config.useDeepLearning) {
       config.setToDeepLearningDefaults();
     }
 
@@ -84,6 +84,14 @@ MainComponent::MainComponent()
     chordAnalyzer = std::make_unique<ChordAnalyzer>(config);
 
     std::thread([this]() { runAnalysisOffline(); }).detach();
+  };
+
+  configButton.onClick = [this] {
+    if (settingsWindow != nullptr) {
+      return;
+    }
+
+    settingsWindow = new SettingsWindow("Analysis Settings", config);
   };
 
   fileButton.onClick = [this] {
@@ -238,6 +246,8 @@ void MainComponent::resized() {
   fileButton.setBounds(620, 380, 120, 40);
 
   testButton.setBounds(780, 380, 120, 40);
+
+  configButton.setBounds(920, 380, 120, 40);
 }
 
 void MainComponent::runAnalysisOffline() {

@@ -1,71 +1,76 @@
 #pragma once
 
+#include "Audio/AudioEngine.h"
+#include "DSP/AnalyzerConfig.h"
 #include "DSP/ChordAnalyzer.h"
 #include "GUI/ChromaDisplay.h"
 #include "GUI/SpectogramDisplay.h"
+#include "GUI/WaveformDisplay.h"
 #include "juce_audio_utils/juce_audio_utils.h"
 #include "juce_core/juce_core.h"
 #include "juce_events/juce_events.h"
 #include "juce_gui_basics/juce_gui_basics.h"
 #include <JuceHeader.h>
 #include <memory>
-#include "Audio/AudioEngine.h"
-#include "GUI/WaveformDisplay.h"
 
 //==============================================================================
 /*
     This component lives inside our window, and this is where you should put all
     your controls and content.
 */
-class MainComponent  : public juce::Component,
-                        private juce::AsyncUpdater,
-                        private juce::ChangeListener
-{
+class MainComponent : public juce::Component,
+                      private juce::AsyncUpdater,
+                      private juce::ChangeListener {
 public:
-    //==============================================================================
-    MainComponent();
-    ~MainComponent() override;
+  //==============================================================================
+  MainComponent();
+  ~MainComponent() override;
 
-    //==============================================================================
-    void paint (juce::Graphics& g) override;
-    void resized() override;
-    void handleAsyncUpdate() override;
-    void changeListenerCallback(juce::ChangeBroadcaster* source) override;
+  //==============================================================================
+  void paint(juce::Graphics &g) override;
+  void resized() override;
+  void handleAsyncUpdate() override;
+  void changeListenerCallback(juce::ChangeBroadcaster *source) override;
 
 private:
-    //==============================================================================
-    AudioEngine audioEngine;
-    juce::AudioDeviceSelectorComponent audioSetupComp;
+  //==============================================================================
+  AudioEngine audioEngine;
+  juce::AudioDeviceSelectorComponent audioSetupComp;
 
-    // Buttons for recording and playing audio
-    juce::TextButton recordButton { "Record" };
-    juce::TextButton playButton { "Play" };
+  // Buttons for recording and playing audio
+  juce::TextButton recordButton{"Record"};
+  juce::TextButton playButton{"Play"};
 
-    // Waveform component
-    WaveformDisplay waveformDisplay { audioEngine };
+  // Waveform component
+  WaveformDisplay waveformDisplay{audioEngine};
 
-    // Spectogram
-    juce::Label fileToAnalyze;
-    juce::TextButton analyzeButton { "Analyze" };
-    // loading animation for spectogram
-    juce::Label loadingText { "Loading", "Analyse spectogram..." };
-    SpectogramDisplay spectogramDisplay;
+  // Spectogram
+  juce::Label fileToAnalyze;
+  juce::TextButton analyzeButton{"Analyze"};
+  // loading animation for spectogram
+  juce::Label loadingText{"Loading", "Analyse spectogram..."};
+  SpectogramDisplay spectogramDisplay;
 
-    // Chromagram
-    ChromaDisplay chromaDisplay;
+  // Chromagram
+  ChromaDisplay chromaDisplay;
 
-    // Classification
-    std::unique_ptr<ChordAnalyzer> chordAnalyzer;
+  // Classification
+  std::unique_ptr<ChordAnalyzer> chordAnalyzer;
 
-    // File selection
-    juce::TextButton fileButton { "Open File " };
-    std::unique_ptr<juce::FileChooser> fileChooser;
+  // File selection
+  juce::TextButton fileButton{"Open File "};
+  std::unique_ptr<juce::FileChooser> fileChooser;
 
-    // Test Button
-    juce::TextButton testButton { "Test" };
+  // Test Button
+  juce::TextButton testButton{"Test"};
 
-    void updateTransportState();
-    void runAnalysisOffline();
+  // Config Button
+  AnalyzerConfig config;
+  juce::TextButton configButton{"Config"};
+  juce::Component::SafePointer<juce::DocumentWindow> settingsWindow;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
+  void updateTransportState();
+  void runAnalysisOffline();
+
+  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

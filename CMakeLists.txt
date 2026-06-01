@@ -5,6 +5,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Name deines Projekts
 project(ACR VERSION 0.0.1)
 
+# macOS target (minimum OS version 11.0)
+if(APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS deployment version")
+endif()
+
 # ==============================================================================
 # 1. JUCE einbinden
 # Hier musst du den Pfad zu deinem JUCE-Ordner angeben.
@@ -58,6 +63,8 @@ target_sources(ACR PRIVATE
     Source/GUI/SpectogramDisplay.cpp
     Source/GUI/ChromaDisplay.h
     Source/GUI/ChromaDisplay.cpp
+    Source/GUI/ConfigPopup.h
+    Source/GUI/ConfigPopup.cpp
     Source/DSP/SpectogramAnalyzer.h
     Source/DSP/SpectogramAnalyzer.cpp
     Source/DSP/ChromaAnalyzer.h
@@ -71,6 +78,7 @@ target_sources(ACR PRIVATE
     Source/TestSetup/Test.cpp
     Source/ML/DeepChromaExtractor.h
     Source/ML/DeepChromaExtractor.cpp
+    Source/ML/FilterbankWeights.h
 )
 
 # ==============================================================================
