@@ -30,22 +30,26 @@ public:
     g.setColour(juce::Colours::white);
     g.setFont(20.0f);
 
-    float binHeight = (float)image.getHeight() / 12.0f;
+    float binHeight = static_cast<float>(image.getHeight() / 12.0f);
 
     for (int i = 0; i < 12; ++i) {
-      float yPos = (float)image.getHeight() - ((i + 1) * binHeight) + topMargin;
+      float yPos = static_cast<float>(image.getHeight() -
+                                      ((i + 1) * binHeight) + topMargin);
 
-      g.drawText(noteNames[i], 10, (int)yPos, leftMargin - 8, (int)binHeight,
-                 juce::Justification::centredLeft, false);
+      g.drawText(noteNames[i], 10, static_cast<int>(yPos), leftMargin - 8,
+                 static_cast<int>(binHeight), juce::Justification::centredLeft,
+                 false);
 
       g.setColour(juce::Colours::white.withAlpha(0.8f));
-      g.drawLine(leftMargin, yPos, (float)getWidth(), yPos, 1.0f);
+      g.drawLine(static_cast<float>(leftMargin), yPos,
+                 static_cast<float>(getWidth()), yPos, 1.0f);
       g.setColour(juce::Colours::white);
     }
 
     // 2. x-axis: frames
-    float totalFrames = image.getWidth();
-    //float framesPerSecond = (float)sampleRate / (float)hopSize; // TODO: Werte überprüfen
+    float totalFrames = static_cast<float>(image.getWidth());
+    // float framesPerSecond = (float)sampleRate / (float)hopSize; // TODO:
+    // Werte überprüfen
     float framesPerSecond = 86.13f;
     int totalSeconds = (int)(totalFrames / framesPerSecond);
 
@@ -70,14 +74,15 @@ public:
       if (seg.chordName.isEmpty() || seg.chordName == "")
         continue;
 
-      float xStart = leftMargin + seg.startFrame;
-      float width = seg.endFrame - seg.startFrame;
+      float xStart = static_cast<float>(leftMargin + seg.startFrame);
+      float width = static_cast<float>(seg.endFrame - seg.startFrame);
 
-      g.drawText(seg.chordName, (int)xStart + 5, 0, (int)width, topMargin,
+      g.drawText(seg.chordName, static_cast<int>(xStart + 5), 0,
+                 static_cast<int>(width), topMargin,
                  juce::Justification::centredLeft, true);
 
       g.setColour(juce::Colours::white.withAlpha(0.8f));
-      g.drawLine(xStart, 0, xStart, (float)getHeight(), 1.0f);
+      g.drawLine(xStart, 0, xStart, static_cast<float>(getHeight()), 1.0f);
       g.setColour(juce::Colours::orange);
     }
   }
@@ -100,7 +105,8 @@ public:
                int screenHeight, double sampleRate, int hopSize)
       : juce::DocumentWindow(name, juce::Colours::darkgrey,
                              DocumentWindow::allButtons) {
-    auto *content = new FullChromaImageComponent(img, segments, sampleRate, hopSize);
+    auto *content =
+        new FullChromaImageComponent(img, segments, sampleRate, hopSize);
     viewport.setViewedComponent(content, true);
     setContentOwned(&viewport, false);
 
@@ -127,14 +133,14 @@ ChromaDisplay::ChromaDisplay() {
 
 void ChromaDisplay::setChromaData(
     const juce::AudioBuffer<float> &chroma,
-    const std::vector<Classificator::ChordSegment> &segments, double sampleRate,
-    int hopSize) {
+    const std::vector<Classificator::ChordSegment> &segments,
+    double sampleRateInput, int hopSizeInput) {
   if (chroma.hasBeenCleared())
     return;
 
   currentSegments = segments;
-  sampleRate = sampleRate;
-  hopSize = hopSize;
+  this->sampleRate = sampleRateInput;
+  this->hopSize = hopSizeInput;
 
   int numFrames = chroma.getNumChannels();
   int numBins = chroma.getNumSamples();
@@ -142,11 +148,14 @@ void ChromaDisplay::setChromaData(
   if (numFrames == 0 || numBins == 0)
     return;
 
+  int pixelsPerFrame = std::max(1, 800 / std::max(1, numFrames));
+  int imageWidth = numFrames * pixelsPerFrame;
+
   // Every bin is 66 pixel high, e.g. 12*66 = 792 pixel total
   int pixelsPerBin = 66;
   int imageHeight = numBins * pixelsPerBin;
 
-  chromaImage = juce::Image(juce::Image::RGB, numFrames, imageHeight, true);
+  chromaImage = juce::Image(juce::Image::RGB, imageWidth, imageHeight, true);
 
   // draw pixel by pixel
   for (int frame = 0; frame < numFrames; ++frame) {
@@ -173,7 +182,11 @@ void ChromaDisplay::setChromaData(
       for (int py = 0; py < pixelsPerBin; ++py) {
         // invert y-axis, so that low sounds (Bin 0) are at the bottom
         int yPos = imageHeight - 1 - (bin * pixelsPerBin + py);
-        chromaImage.setPixelAt(frame, yPos, pColour);
+
+        // draw every frame pixelsPerFrame times
+        for (int px = 0; px < pixelsPerFrame; px++) {
+          chromaImage.setPixelAt(frame * pixelsPerFrame + px, yPos, pColour);
+        }
       }
     }
   }
@@ -181,7 +194,7 @@ void ChromaDisplay::setChromaData(
   repaint();
 }
 
-void ChromaDisplay::mouseDown(const juce::MouseEvent &e) {
+void ChromaDisplay::mouseDown([[maybe_unused]] const juce::MouseEvent &e) {
   if (chromaImage.isValid()) {
     int screenHeight = getParentMonitorArea().getHeight();
     new ChromaWindow("Chromagram", chromaImage, currentSegments, screenHeight,
@@ -229,13 +242,14 @@ void ChromaDisplay::paint(juce::Graphics &g) {
     int frameStep = 100;
 
     for (int f = 0; f < totalFrames; f += frameStep) {
-      float xPos = ((float)f / totalFrames) * getWidth();
+      float xPos = (static_cast<float>(f) / totalFrames) * getWidth();
 
-      g.drawLine(xPos, (float)getHeight() - 5, xPos, (float)getHeight(), 2.0f);
+      g.drawLine(xPos, static_cast<float>(getHeight() - 5), xPos,
+                 static_cast<float>(getHeight()), 2.0f);
 
       juce::String frameText = juce::String(f);
-      g.drawText(frameText, (int)xPos + 2, getHeight() - 20, 50, 20,
-                 juce::Justification::bottomLeft, false);
+      g.drawText(frameText, static_cast<int>(xPos + 2), getHeight() - 20, 50,
+                 20, juce::Justification::bottomLeft, false);
     }
   } else {
     g.setColour(juce::Colours::grey);

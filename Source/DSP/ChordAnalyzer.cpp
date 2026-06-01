@@ -1,22 +1,20 @@
 #include "ChordAnalyzer.h"
+#include "AnalyzerConfig.h"
+#include "ChromaAnalyzer.h"
 #include "Classificator.h"
+#include "SpectogramAnalyzer.h"
+#include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_audio_formats/juce_audio_formats.h"
-#include <algorithm>
+#include "juce_core/juce_core.h"
 #include <memory>
 
-ChordAnalyzer::ChordAnalyzer() : classifier(0.8f) {}
-
-ChordAnalyzer::ChordAnalyzer(Test::TestConfig &config) : classifier(config.similarityThreshold) {
-  if (!config.medianFilter) {
-    medianFilter = false;
-  }
-
-  medianWindowSize = config.medianWindowSize;
-  s = config.s;
-  similarityThreshold = config.similarityThreshold;
-  chromaRes = config.chromaRes;
-}
-
+ChordAnalyzer::ChordAnalyzer(AnalyzerConfig &config)
+    : classifier(config.similarityThreshold), spectoAnalyzer(config),
+      fftOrder(config.fftOrder), fftSize(config.fftSize),
+      hopSize(config.hopSize), medianFilter(config.medianFilter),
+      medianWindowSize(config.medianWindowSize), s(config.s),
+      similarityThreshold(config.similarityThreshold),
+      chromaRes(config.chromaRes), useDeepLearning(config.useDeepLearning) {}
 
 /**
  * Runs the complete chord analysis process on a given audio file.
@@ -25,12 +23,14 @@ ChordAnalyzer::ChordAnalyzer(Test::TestConfig &config) : classifier(config.simil
  * the chromagram, and classifies the resulting data into chord segments.
  *
  * @param audioFile The audio file to be analyzed.
- * @return An AnalysisResult object containing the computed spectrogram, chromagram, and chord segments.
+ * @return An AnalysisResult object containing the computed spectrogram,
+ * chromagram, and chord segments.
  */
 ChordAnalyzer::AnalysisResult
 ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
   AnalysisResult result;
 
+  // 1. Read in audio file
   juce::AudioFormatManager formatManager;
   formatManager.registerBasicFormats();
 
@@ -43,41 +43,59 @@ ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
                                   (int)reader->lengthInSamples);
   reader->read(&buffer, 0, (int)reader->lengthInSamples, 0, true, true);
 
-  auto spectogramData =
-      spectoAnalyzer.processFullFile(buffer, reader->sampleRate);
+  // 2. Create Spectogram
+  auto spectogramData = spectoAnalyzer.processFullFile(buffer);
+
+  int numFrames = static_cast<int>(spectogramData.getNumChannels());
+  int numBins =
+      spectogramData.hasBeenCleared() ? 0 : (int)spectogramData.getNumSamples();
 
   std::cout << "=== SPEKTOGRAMM BERECHNET ===" << std::endl;
-  std::cout << "Anzahl Frames (Zeit): " << spectogramData.size() << std::endl;
-  if (!spectogramData.empty()) {
-    std::cout << "Anzahl Bins (Frequenz): " << spectogramData[0].size()
-              << std::endl;
+  std::cout << "FFT Size : " << fftSize
+            << ", Hop Size: " << spectoAnalyzer.getHopSize() << std::endl;
+  std::cout << "Anzahl Frames (Zeit): " << numFrames << std::endl;
+  if (!spectogramData.hasBeenCleared()) {
+    std::cout << "Anzahl Bins (Frequenz): " << numBins << std::endl;
   }
 
-  int numFrames = (int)spectogramData.size();
-  int numBins = spectogramData.empty() ? 0 : (int)spectogramData[0].size();
-
-  juce::AudioBuffer<float> spectoBuffer(numFrames, numBins);
-
-  for (int i = 0; i < numFrames; i++) {
-    juce::FloatVectorOperations::copy(spectoBuffer.getWritePointer(i),
-                                      spectogramData[i].data(), numBins);
+  if (useDeepLearning) {
+    chromaProcessor =
+        std::make_unique<DeepChromaExtractor>(chromaRes * chromaSize);
+  } else {
+    chromaProcessor = std::make_unique<ChromaAnalyzer>(
+        static_cast<float>(reader->sampleRate), static_cast<float>(fftSize), s,
+        chromaRes, medianWindowSize, medianFilter);
   }
 
-  float fftSize = (float)(numBins * 2);
-  ChromaAnalyzer chromaAnalyzer = ChromaAnalyzer(reader->sampleRate, fftSize, s, chromaRes, medianWindowSize, medianFilter);
-  int chromaBins = chromaAnalyzer.getChromaBinSize();
+  // Create Chromagram
+  int chromaBins = chromaProcessor->getChromaBinSize();
 
   auto chromagram = juce::AudioBuffer<float>(numFrames, chromaBins);
-  chromaAnalyzer.processFullSpectogram(spectoBuffer, chromagram);
+  chromaProcessor->extractChroma(spectogramData, chromagram);
 
   // classify
-  Classificator classifier = Classificator(similarityThreshold);
   std::vector<int> classifiedFrames;
   classifiedFrames.resize(chromagram.getNumChannels());
   classifier.classifyFullChroma(chromagram, classifiedFrames);
   std::vector<Classificator::ChordSegment> chordSegments =
       classifier.getGroupedSegments(classifiedFrames);
 
+  // Debug verification
+  // Set this to true if you want to export the chroma as a json.
+  // I used the json to verify my model outputs with the madmom library outputs.
+  bool exportForPython = false;
+  if (exportForPython) {
+    juce::File desktop =
+        juce::File::getSpecialLocation(juce::File::userDesktopDirectory);
+    // juce::File spectoFile = desktop.getChildFile(
+    // audioFile.getFileNameWithoutExtension() + "_specto.json");
+    juce::File chromaFile = desktop.getChildFile(
+        audioFile.getFileNameWithoutExtension() + "_chroma.json");
+
+    // exportBufferToJson(spectogramData, spectoFile);
+    exportBufferToJson(chromagram, chromaFile);
+    std::cout << "JSON Files exported to Desktop!" << std::endl;
+  }
   // save all results
   result.spectogramData = std::move(spectogramData);
   result.chromagramData = std::move(chromagram);
@@ -87,4 +105,26 @@ ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
   result.hopSize = spectoAnalyzer.getHopSize();
 
   return result;
+}
+
+void ChordAnalyzer::exportBufferToJson(const juce::AudioBuffer<float> &buffer,
+                                       const juce::File &outputFile) {
+  juce::DynamicObject::Ptr jsonRoot = new juce::DynamicObject();
+  juce::Array<juce::var> framesArray;
+
+  int numFrames = buffer.getNumChannels();
+  int numBins = buffer.getNumSamples();
+
+  for (int t = 0; t < numFrames; t++) {
+    const float *frameData = buffer.getReadPointer(t);
+    juce::Array<juce::var> binsArray;
+
+    for (int b = 0; b < numBins; b++) {
+      binsArray.add(juce::var(static_cast<double>(frameData[b])));
+    }
+    framesArray.add(juce::var(binsArray));
+  }
+
+  juce::String jsonString = juce::JSON::toString(juce::var(framesArray));
+  outputFile.replaceWithText(jsonString);
 }

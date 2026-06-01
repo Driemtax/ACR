@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../DSP/Classificator.h"
+#include "../DSP/AnalyzerConfig.h"
 #include "juce_core/juce_core.h"
 #include <JuceHeader.h>
 #include <vector>
@@ -11,6 +12,11 @@ public:
     int method = 0;
     juce::String testName = "";
 
+    // FFT
+    int fftSize = 4096;
+    int fftOrder = 12;
+    int hopSize = 512;
+
     // flags
     bool medianFilter = false;
     int medianWindowSize = 5;
@@ -19,6 +25,8 @@ public:
     int chromaRes = 1;
     float s = 0.6f;
 
+    bool useDeepChroma = false;
+
     // Classification
     float similarityThreshold = 0.3f;
   };
@@ -26,8 +34,8 @@ public:
   Test() = default;
   ~Test() = default;
 
-  void runTests(TestConfig &config, const juce::File &testDataDirectory,
-                const juce::File &outputDirectory) const;
+  void runTests(AnalyzerConfig &config, const juce::File &testDataDirectory,
+                const juce::File &outputDirectory, const juce::String testFileName) const;
 
 private:
   struct GroundTruthLabel {

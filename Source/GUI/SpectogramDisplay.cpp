@@ -1,4 +1,6 @@
 #include "SpectogramDisplay.h"
+#include "juce_audio_basics/juce_audio_basics.h"
+#include <algorithm>
 
 // =====================================================================================
 // Auxilary class to spawnm a new window of the needed size to display the
@@ -51,21 +53,27 @@ SpectogramDisplay::SpectogramDisplay() {
 // This function will be called from the thread analysing the audio, when the
 // Analysis has finished.
 void SpectogramDisplay::setSpectogramData(
-    const std::vector<std::vector<float>> &data) {
-  if (data.empty() || data[0].empty())
+    const juce::AudioBuffer<float> &data) {
+  if (data.hasBeenCleared())
     return;
 
-  int numFrames = (int)data.size();
-  int numBins = (int)data[0].size();
+  int numFrames = (int)data.getNumChannels();
+  int numBins = (int)data.getNumSamples();
 
-  // create an image of size (numFrames * numBins)
-  spectogramImage = juce::Image(juce::Image::RGB, numFrames, numBins, true);
+  // dynamic scaling of width: at least 800 pixel
+  int pixelsPerFrame = std::max(1, 800 / std::max(1, numFrames));
+  int imageWidth = numFrames * pixelsPerFrame;
+
+  // create an image of size (imageWidth * numBins)
+  spectogramImage = juce::Image(juce::Image::RGB, imageWidth, numBins, true);
 
   float minDb = 1000.0f;
   float maxDb = -1000.0f;
 
-  for (const auto &frame : data) {
-    for (float val : frame) {
+  for (int f = 0; f < numFrames; f++) {
+    const float *frame = data.getReadPointer(f);
+    for (int bin = 0; bin < numBins; bin++) {
+      float val = frame[bin];
       if (val < minDb)
         minDb = val;
       if (val > maxDb)
@@ -79,9 +87,9 @@ void SpectogramDisplay::setSpectogramData(
 
   // draw image pixel by pixel
   for (int x = 0; x < numFrames; x++) {
-    const auto &frame = data[(size_t)x];
+    const auto &frame = data.getReadPointer(x);
     for (int y = 0; y < numBins; y++) {
-      float dbValue = frame[(size_t)y];
+      float dbValue = frame[y];
       float normalizedValue = (dbValue - minDb) / dbRange;
 
       // This is to dampen the noise. Everything near to 1 stays there
@@ -94,16 +102,20 @@ void SpectogramDisplay::setSpectogramData(
               .interpolatedWith(juce::Colours::white,
                                 std::max(0.0f, contrastValue * 2.0f - 1.0f));
 
-      // the axis in graphics and audio spectogram are mirrored on the y-axis,
-      // we need to mirror it back.
-      spectogramImage.setPixelAt(x, numBins - 1 - y, pixelColour);
+      // draw this pixelsPerFrame times
+      for (int px = 0; px < pixelsPerFrame; px++) {
+        // the axis in graphics and audio spectogram are mirrored on the y-axis,
+        // we need to mirror it back.
+        spectogramImage.setPixelAt(x * pixelsPerFrame + px, numBins - 1 - y,
+                                   pixelColour);
+      }
     }
   }
 
   repaint();
 }
 
-void SpectogramDisplay::mouseDown(const juce::MouseEvent &e) {
+void SpectogramDisplay::mouseDown([[maybe_unused]] const juce::MouseEvent &e) {
   if (spectogramImage.isValid()) {
     int screenHeight = getParentMonitorArea().getHeight();
     new SpectogramWindow("High-Res Spectogram", spectogramImage, screenHeight);

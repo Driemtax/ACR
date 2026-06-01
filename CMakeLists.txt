@@ -1,7 +1,14 @@
 cmake_minimum_required(VERSION 3.22)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Name deines Projekts
 project(ACR VERSION 0.0.1)
+
+# macOS target (minimum OS version 11.0)
+if(APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS deployment version")
+endif()
 
 # ==============================================================================
 # 1. JUCE einbinden
@@ -9,7 +16,16 @@ project(ACR VERSION 0.0.1)
 # Falls JUCE im selben Ordner wie Test_BA liegt (z.B. C:/Users/a930084/dev/JUCE),
 # dann wäre der Pfad "../JUCE".
 # ==============================================================================
-add_subdirectory("C:/dev/ACR/JUCE" JUCE)
+#add_subdirectory("C:/dev/ACR/JUCE" JUCE)
+include(FetchContent)
+
+FetchContent_Declare(
+  juce
+  GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
+  GIT_TAG 8.0.12
+)
+
+FetchContent_MakeAvailable(juce)
 
 # ==============================================================================
 # 2. Die ausführbare GUI-Anwendung erstellen
@@ -18,6 +34,18 @@ juce_add_gui_app(ACR
     # PRODUCT_NAME "Test_BA"
     # BUNDLE_ID    com.deinname.test_ba
     # COMPANY_NAME "Dein Name"
+)
+
+
+# ==============================================================================
+# 2. ONNX Integration
+# ==============================================================================
+target_include_directories(ACR PRIVATE
+  "C:/Test/ML/onnxruntime-win-x64-1.26.0/include"
+)
+
+target_link_directories(ACR PRIVATE
+  "C:/Test/ML/onnxruntime-win-x64-1.26.0/lib"
 )
 
 # ==============================================================================
@@ -35,6 +63,8 @@ target_sources(ACR PRIVATE
     Source/GUI/SpectogramDisplay.cpp
     Source/GUI/ChromaDisplay.h
     Source/GUI/ChromaDisplay.cpp
+    Source/GUI/ConfigPopup.h
+    Source/GUI/ConfigPopup.cpp
     Source/DSP/SpectogramAnalyzer.h
     Source/DSP/SpectogramAnalyzer.cpp
     Source/DSP/ChromaAnalyzer.h
@@ -43,8 +73,12 @@ target_sources(ACR PRIVATE
     Source/DSP/Classificator.cpp
     Source/DSP/ChordAnalyzer.h
     Source/DSP/ChordAnalyzer.cpp
+    Source/DSP/ChromaExtractorInterface.h
     Source/TestSetup/Test.h
     Source/TestSetup/Test.cpp
+    Source/ML/DeepChromaExtractor.h
+    Source/ML/DeepChromaExtractor.cpp
+    Source/ML/FilterbankWeights.h
 )
 
 # ==============================================================================
@@ -76,6 +110,7 @@ target_link_libraries(ACR PRIVATE
     juce::juce_recommended_config_flags
     juce::juce_recommended_lto_flags
     juce::juce_recommended_warning_flags
+    onnxruntime.lib
 )
 
 # Hiermit wird der JUCEHeader.h generiert (optional, aber Projucer nutzt ihn oft)

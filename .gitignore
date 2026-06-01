@@ -52,3 +52,6 @@ $RECYCLE.BIN/
 *.ilk
 
 TestResults/
+Scripts/venv/
+Scripts/*_python.json
+Testfiles/
