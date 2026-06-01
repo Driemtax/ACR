@@ -26,10 +26,14 @@ private:
   int fftOrder;
   int fftSize;
   int hopSize;
+  bool normalizeAudio;
+  bool centerOriginPadding;
+  bool convertToDecibels;
 
   juce::dsp::FFT fft;
   juce::dsp::WindowingFunction<float> window{
-      static_cast<size_t>(fftSize), juce::dsp::WindowingFunction<float>::hann};
+      static_cast<size_t>(fftSize), juce::dsp::WindowingFunction<float>::hann,
+      false};
 
   // Utility
   void normalizeVolume(juce::AudioBuffer<float> &bufferToNormalize) const;

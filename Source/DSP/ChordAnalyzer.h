@@ -46,4 +46,8 @@ private:
   // Deep Chroma Extractor
   bool useDeepLearning = false;
   std::unique_ptr<ChromaExtractorInterface> chromaProcessor;
+
+  // Extraction for verification
+  void exportBufferToJson(const juce::AudioBuffer<float> &buffer,
+                          const juce::File &outputFile);
 };

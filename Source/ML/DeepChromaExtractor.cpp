@@ -1,4 +1,5 @@
 #include "DeepChromaExtractor.h"
+#include "FilterbankWeights.h"
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_core/system/juce_PlatformDefs.h"
 #include "onnxruntime_c_api.h"
@@ -81,25 +82,17 @@ void DeepChromaExtractor::extractChroma(
 
   int numFrames = spectogram.getNumChannels();
   int numLinearBins = spectogram.getNumSamples();
+  int numLogBins = static_cast<int>(MADMOM_FILTERBANK.size());
 
   // =================================================================================
   // 1. Logarithmic Filterbank Calculation (Extracting unique bins)
   // =================================================================================
-  // Those are the indices extracted from the madmom Library. The Calculation
-  // was one off which resulted in the classification beeing off by a semitone.
-  // I therefore decided to just hardcode the indices since those are wired in
-  // the weights and biases of the model and cannot change.
-  static const std::vector<int> logBinIndices = {
-      13,  14,  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,
-      27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  39,  40,  41,
-      42,  43,  45,  46,  47,  49,  50,  51,  53,  55,  56,  58,  59,  61,
-      63,  65,  67,  69,  71,  73,  75,  77,  79,  82,  84,  87,  89,  92,
-      94,  97,  100, 103, 106, 109, 112, 116, 119, 122, 126, 130, 134, 137,
-      141, 146, 150, 154, 159, 163, 168, 173, 178, 183, 189, 194, 200, 206,
-      212, 218, 225, 231, 238, 245, 252, 259, 267, 275, 283, 291, 300, 309,
-      318, 327, 337, 346, 357, 367, 378};
-
-  int numLogBins = static_cast<int>(logBinIndices.size());
+  // For each of the 105 output bands, convert the contributing FFT bins from
+  // dB back to linear magnitude, compute the weighted sum using the triangular
+  // filter coefficients, then apply madmom's log compression: log10(1 + 100*x).
+  //
+  // This is equivalent to: log_spec = dot(linear_mag, filterbank_matrix)
+  //                         compressed = log10(1 + 100 * log_spec)
 
   // Build the compressed log-spectogram (Frames x 105)
   std::vector<std::vector<float>> logSpectogram(
@@ -108,14 +101,22 @@ void DeepChromaExtractor::extractChroma(
     const float *frameData = spectogram.getReadPointer(t);
 
     for (int b = 0; b < numLogBins; b++) {
-      // 1. convert decibels back to linear gain
-      float dbValue = frameData[logBinIndices[b]];
-      float linearMag = std::pow(10.0f, dbValue / 20.0f);
+      const FilterBand &band = MADMOM_FILTERBANK[b];
+      float linearSum = 0.0f;
 
-      // apply logarithmic compression of madmom (multiplier = 100)
-      logSpectogram[t][b] = std::log10(1.0f + 100.0f * linearMag);
+      for (size_t k = 0; k < band.bins.size(); k++) {
+        float linearMag = frameData[band.bins[k]];
+        linearSum += band.weights[k] * linearMag;
+      }
+
+      // apply logarithmic compression of madmom (multiplier = 100) or is it
+      // just 1?
+      logSpectogram[t][b] = std::log10(1.0f + linearSum);
     }
   }
+
+  // TODO: Export Spectogram in 2D Array structure in Json, same structure as in
+  // Scripts/*_specto.json
 
   // =================================================================================
   // 2. ONNX Inference Preparation

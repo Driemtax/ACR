@@ -9,7 +9,9 @@ SpectogramAnalyzer::SpectogramAnalyzer(int order)
 
 SpectogramAnalyzer::SpectogramAnalyzer(AnalyzerConfig &config)
     : fftOrder(config.fftOrder), fftSize(config.fftSize), fft(config.fftOrder),
-      hopSize(config.hopSize) {}
+      hopSize(config.hopSize), normalizeAudio(config.normalizeAudio),
+      centerOriginPadding(config.centerOriginPadding),
+      convertToDecibels(config.convertToDecibel) {}
 
 /**
  * @brief Processes a full audio file and generates its spectrogram.
@@ -34,7 +36,13 @@ juce::AudioBuffer<float> SpectogramAnalyzer::processFullFile(
 
   // 1. Normalize everything between values [-1.0, 1.0]
   juce::AudioBuffer<float> workingBuffer = fullAudioFile;
-  normalizeVolume(workingBuffer);
+
+  // 2. Optional amplitude normalization (HPCP only, NOT for DeepChroma).
+  //    madmom's SignalProcessor uses norm=False by default. Normalizing before
+  //    the FFT scales all magnitudes and breaks the model's input distribution.
+  if (normalizeAudio) {
+    normalizeVolume(workingBuffer);
+  }
 
   // Mix left and right channel to one mono channel to save computing time
   // analyzing it
@@ -45,23 +53,45 @@ juce::AudioBuffer<float> SpectogramAnalyzer::processFullFile(
     workingBuffer.applyGain(0, 0, workingBuffer.getNumSamples(), 0.5f);
   }
 
-  const float *monoData = workingBuffer.getReadPointer(0);
-  const int totalSamples = workingBuffer.getNumSamples();
+  // 3. Optional center-origin padding (DeepChroma only, matches madmom).
+  //    madmom's FramedSignalProcessor centers the first frame at sample 0,
+  //    equivalent to prepending fftSize/2 zeros. We also append fftSize/2
+  //    zeros so the last frame can extend cleanly beyond the signal end.
+  juce::AudioBuffer<float> processBuffer;
+  if (centerOriginPadding) {
+    int padding = fftSize / 2;
+    int paddedSamples = workingBuffer.getNumSamples() + 2 * padding;
+    processBuffer.setSize(1, paddedSamples);
+    processBuffer.copyFrom(0, padding, workingBuffer, 0, 0,
+                           workingBuffer.getNumSamples());
+  } else {
+    processBuffer = workingBuffer;
+  }
 
-  // calculate size of spectogram
-  if (totalSamples >= fftSize) {
+  const float *monoData = processBuffer.getReadPointer(0);
+  const int totalSamples = processBuffer.getNumSamples();
+  const int originalSamples = workingBuffer.getNumSamples();
 
-    numFrames = 1 + (totalSamples - fftSize) / hopSize;
+  numFrames = 0;
+  if (centerOriginPadding) {
+    if (originalSamples > 0) {
+      numFrames = 1 + (originalSamples - 1) / hopSize;
+    }
+  } else {
+    if (totalSamples >= fftSize) {
+      numFrames = 1 + (totalSamples - fftSize) / hopSize;
+    }
   }
 
   juce::AudioBuffer<float> spectogram(numFrames, numBins);
 
-  // 2. Short-Time Fourier Transform with Hop Size 50%
+  // 2. Short-Time Fourier Transform with Hop Size
 
   // Hopping prevents samples to get "lost" due to the windowing function
   // for further details see docs/DSP
   int frameIndex = 0;
-  for (int startIdx = 0; startIdx + fftSize <= totalSamples;
+  for (int startIdx = 0;
+       startIdx + fftSize <= totalSamples && frameIndex < numFrames;
        startIdx += hopSize) {
     // Chunk audio into frames
     frameMagnitudes = processSingleFrame(monoData + startIdx);
@@ -132,7 +162,14 @@ SpectogramAnalyzer::processSingleFrame(const float *frameData) const {
   std::vector<float> magnitudes(numBins);
 
   for (int i = 0; i < numBins; i++) {
-    magnitudes[i] = juce::Decibels::gainToDecibels(fftBuffer[i], -100.0f);
+    // For HPCP we use Decibels (log scale)
+    if (convertToDecibels) {
+      magnitudes[i] = juce::Decibels::gainToDecibels(fftBuffer[i], -100.0f);
+    }
+    // For DeepLearning we cannot convert to decibels
+    else {
+      magnitudes[i] = fftBuffer[i];
+    }
   }
 
   return magnitudes;

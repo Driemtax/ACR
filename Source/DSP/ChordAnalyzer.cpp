@@ -3,7 +3,9 @@
 #include "ChromaAnalyzer.h"
 #include "Classificator.h"
 #include "SpectogramAnalyzer.h"
+#include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_audio_formats/juce_audio_formats.h"
+#include "juce_core/juce_core.h"
 #include <memory>
 
 ChordAnalyzer::ChordAnalyzer(AnalyzerConfig &config)
@@ -78,6 +80,22 @@ ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
   std::vector<Classificator::ChordSegment> chordSegments =
       classifier.getGroupedSegments(classifiedFrames);
 
+  // Debug verification
+  // Set this to true if you want to export the chroma as a json.
+  // I used the json to verify my model outputs with the madmom library outputs.
+  bool exportForPython = false;
+  if (exportForPython) {
+    juce::File desktop =
+        juce::File::getSpecialLocation(juce::File::userDesktopDirectory);
+    // juce::File spectoFile = desktop.getChildFile(
+    // audioFile.getFileNameWithoutExtension() + "_specto.json");
+    juce::File chromaFile = desktop.getChildFile(
+        audioFile.getFileNameWithoutExtension() + "_chroma.json");
+
+    // exportBufferToJson(spectogramData, spectoFile);
+    exportBufferToJson(chromagram, chromaFile);
+    std::cout << "JSON Files exported to Desktop!" << std::endl;
+  }
   // save all results
   result.spectogramData = std::move(spectogramData);
   result.chromagramData = std::move(chromagram);
@@ -87,4 +105,26 @@ ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
   result.hopSize = spectoAnalyzer.getHopSize();
 
   return result;
+}
+
+void ChordAnalyzer::exportBufferToJson(const juce::AudioBuffer<float> &buffer,
+                                       const juce::File &outputFile) {
+  juce::DynamicObject::Ptr jsonRoot = new juce::DynamicObject();
+  juce::Array<juce::var> framesArray;
+
+  int numFrames = buffer.getNumChannels();
+  int numBins = buffer.getNumSamples();
+
+  for (int t = 0; t < numFrames; t++) {
+    const float *frameData = buffer.getReadPointer(t);
+    juce::Array<juce::var> binsArray;
+
+    for (int b = 0; b < numBins; b++) {
+      binsArray.add(juce::var(static_cast<double>(frameData[b])));
+    }
+    framesArray.add(juce::var(binsArray));
+  }
+
+  juce::String jsonString = juce::JSON::toString(juce::var(framesArray));
+  outputFile.replaceWithText(jsonString);
 }
