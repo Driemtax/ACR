@@ -47,9 +47,8 @@ This tool orchestrates a complete MIR pipeline:
 This project uses **CMake** as its build system and requires the **JUCE Framework**.
 
 ### Prerequisites
-* A C++20 capable compiler (MSVC on Windows, Clang on macOS, GCC on Linux)
+* A C++17 capable compiler (MSVC on Windows, Clang on macOS, GCC on Linux)
 * [CMake](https://cmake.org/download/) (version 3.22 or higher)
-* [JUCE](https://juce.com/) (needs to be available locally)
 
 ### Build Instructions
 
