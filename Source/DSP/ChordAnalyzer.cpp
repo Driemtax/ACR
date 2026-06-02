@@ -50,12 +50,12 @@ ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
   int numBins =
       spectogramData.hasBeenCleared() ? 0 : (int)spectogramData.getNumSamples();
 
-  std::cout << "=== SPEKTOGRAMM BERECHNET ===" << std::endl;
-  std::cout << "FFT Size : " << fftSize
-            << ", Hop Size: " << spectoAnalyzer.getHopSize() << std::endl;
-  std::cout << "Anzahl Frames (Zeit): " << numFrames << std::endl;
+  // std::cout << "=== SPEKTOGRAMM BERECHNET ===" << std::endl;
+  // std::cout << "FFT Size : " << fftSize
+  //           << ", Hop Size: " << spectoAnalyzer.getHopSize() << std::endl;
+  // std::cout << "Anzahl Frames (Zeit): " << numFrames << std::endl;
   if (!spectogramData.hasBeenCleared()) {
-    std::cout << "Anzahl Bins (Frequenz): " << numBins << std::endl;
+    // std::cout << "Anzahl Bins (Frequenz): " << numBins << std::endl;
   }
 
   if (useDeepLearning) {

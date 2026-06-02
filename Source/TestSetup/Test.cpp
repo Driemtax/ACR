@@ -1,18 +1,158 @@
 #include "Test.h"
 #include "../DSP/ChordAnalyzer.h"
 #include "juce_core/juce_core.h"
+#include <algorithm>
 #include <cstddef>
 #include <iostream>
+#include <string>
 #include <vector>
 
-void Test::runTests(AnalyzerConfig &config, const juce::File &testDataDirectory,
-                    const juce::File &outputDirectory,
-                    const juce::String testFileName) const {
+void Test::runAllTests() const {
+  // 1. TestCase: HPCP base with no median Filter
+  juce::String testName = "HPCP_base_noMedian";
+  AnalyzerConfig config = AnalyzerConfig();
+  config.medianFilter = false;
+  runTests(config, const_cast<juce::String &>(testName), true);
+
+  // 2. TestCase: HPCP base with median Filter Window Size = 5
+  testName = "HPCP_base_median5";
+  config.medianFilter = true;
+  config.medianWindowSize = 5;
+  runTests(config, const_cast<juce::String &>(testName), true);
+
+  // 3. TestCase: Use ML modell of madmom
+  testName = "DeepChroma_base";
+  config.setToDeepLearningDefaults();
+  runTests(config, const_cast<juce::String &>(testName), true);
+
+  // TODO: run tests on every config
+  // TODO: Output every result json with appropriate name
+}
+
+void Test::findMaxima() const {
+  // findMaximaMedianWindowSize();
+  findMaximaFloatParameters();
+}
+
+void Test::findMaximaMedianWindowSize() const {
+  AnalyzerConfig config;
+  const juce::String testfileName = "MedianMaximum";
+
+  int bestWindowSize = 1;
+  float highestAccuracy = 0.0f;
+  float currentAccuracy = 0.0f;
+
+  for (int i = 1; i <= 60; i++) {
+    config.medianWindowSize = i;
+
+    currentAccuracy =
+        runTests(config, testfileName + "_" + std::to_string(i), false);
+
+    std::cout << "Median Size: " << i
+              << ", Accuracy: " << currentAccuracy * 100.0f << std::endl;
+
+    if (currentAccuracy > highestAccuracy) {
+      highestAccuracy = currentAccuracy;
+      bestWindowSize = i;
+    }
+  }
+
+  std::cout << "Highest Accuracy: " << highestAccuracy * 100.0f
+            << " with Median Window Size: " << bestWindowSize << std::endl;
+}
+
+void Test::findMaximaFloatParameters() const {
+  AnalyzerConfig config;
+  // Accpording to first tests the best value for accuracy.
+  config.medianWindowSize = 19;
+  const juce::String testfileName = "FloatParametersMaximum";
+
+  float bestS = 0.0f;
+  float bestThreshold = 0.0f;
+  float bestAccuracy = -1.0f;
+  float sMin = 0.1f;
+  float sMax = 1.0f;
+  float sStep = 0.1f;
+  float thresholdMin = 0.3f;
+  float thresholdMax = 0.9f;
+  float thresholdStep = 0.1f;
+
+  std::cout << "=== STARTE GROBE RASTERSUCHE ===" << std::endl;
+
+  for (float s = sMin; s < sMax + 0.0001f; s += sStep) {
+    for (float t = thresholdMin; t < thresholdMax + 0.0001f;
+         t += thresholdStep) {
+      config.s = s;
+      config.similarityThreshold = t;
+
+      float currentAccuracy = runTests(config,
+                                       testfileName + "_s" + std::to_string(s) +
+                                           "_t" + std::to_string(t),
+                                       false);
+
+      std::cout << "Test s=" << s << ", treshold=" << t
+                << " -> Accuracy: " << currentAccuracy * 100.0f << "%"
+                << std::endl;
+
+      if (currentAccuracy > bestAccuracy) {
+        bestAccuracy = currentAccuracy;
+        bestS = s;
+        bestThreshold = t;
+      }
+    }
+  }
+
+  std::cout << "Grobes Maximum gefunden bei s=" << bestS
+            << ", threshold=" << bestThreshold << " (Accuracy: " << bestAccuracy
+            << "%)" << std::endl;
+
+  std::cout << "\n=== STARTE FEINE RASTERSUCHE ===" << std::endl;
+  sMin = std::max(0.0f, bestS - sStep);
+  sMax = std::min(1.0f, bestS + sStep);
+
+  thresholdMin = std::max(0.0f, bestThreshold - thresholdStep);
+  thresholdMax = std::min(1.0f, bestThreshold + thresholdStep);
+
+  sStep = 0.02f;
+  thresholdStep = 0.02f;
+
+  for (float s = sMin; s <= sMax + 0.0001f; s += sStep) {
+    for (float t = thresholdMin; t <= thresholdMax + 0.0001f;
+         t += thresholdStep) {
+      config.s = s;
+      config.similarityThreshold = t;
+
+      float currentAccuracy = runTests(config,
+                                       testfileName + "_s" + std::to_string(s) +
+                                           "_t" + std::to_string(t),
+                                       false);
+
+      std::cout << "Test s=" << s << ", treshold=" << t
+                << " -> Accuracy: " << currentAccuracy * 100.0f << "%"
+                << std::endl;
+
+      if (currentAccuracy > bestAccuracy) {
+        bestAccuracy = currentAccuracy;
+        bestS = s;
+        bestThreshold = t;
+      }
+    }
+  }
+
+  std::cout << "\n=== OPTIMIERUNG ABGESCHLOSSEN ===" << std::endl;
+  std::cout << "Beste Parameter:" << std::endl;
+  std::cout << "s = " << bestS << std::endl;
+  std::cout << "similarityThreshold = " << bestThreshold << std::endl;
+  std::cout << "Finale Accuracy = " << bestAccuracy << "%" << std::endl;
+}
+
+float Test::runTests(AnalyzerConfig &config, const juce::String testFileName,
+                     bool logToConsole) const {
 
   juce::DynamicObject::Ptr jsonRoot = new juce::DynamicObject();
   juce::Array<juce::var> allSongsArray;
 
-  juce::RangedDirectoryIterator iter(testDataDirectory, false, "*.wav");
+  juce::RangedDirectoryIterator iter(testDataDir, false, "*.wav");
 
   int globalCorrectFrames = 0;
   int globalTotalFrames = 0;
@@ -22,7 +162,7 @@ void Test::runTests(AnalyzerConfig &config, const juce::File &testDataDirectory,
     juce::String baseName = wavFile.getFileNameWithoutExtension();
 
     juce::String labelFileName = baseName + "_label.txt";
-    juce::File labelFile = testDataDirectory.getChildFile(labelFileName);
+    juce::File labelFile = testDataDir.getChildFile(labelFileName);
 
     if (!labelFile.existsAsFile()) {
       std::cout << "Warning: No Label File for " << baseName
@@ -30,7 +170,9 @@ void Test::runTests(AnalyzerConfig &config, const juce::File &testDataDirectory,
       continue;
     }
 
-    std::cout << "Analyze recording: " << baseName << "..." << std::endl;
+    if (logToConsole) {
+      std::cout << "Analyze recording: " << baseName << "..." << std::endl;
+    }
 
     auto groundTruth = parseGroundTruth(labelFile);
 
@@ -70,13 +212,17 @@ void Test::runTests(AnalyzerConfig &config, const juce::File &testDataDirectory,
   jsonRoot->setProperty("songs", allSongsArray);
 
   juce::File outputFile =
-      outputDirectory.getChildFile("results_" + testFileName + ".json");
+      outputDir.getChildFile("results_" + testFileName + ".json");
   saveResultsToJSON(juce::var(jsonRoot.get()), outputFile);
 
-  std::cout << "Test-Run Finished! Results were saved: "
-            << outputFile.getFullPathName() << std::endl;
-  std::cout << "Overall Accuracy: " << (overallAccuracy * 100.0f) << " %"
-            << std::endl;
+  if (logToConsole) {
+    std::cout << "Test-Run Finished! Results were saved: "
+              << outputFile.getFullPathName() << std::endl;
+    std::cout << "Overall Accuracy: " << (overallAccuracy * 100.0f) << " %"
+              << std::endl;
+  }
+
+  return overallAccuracy;
 }
 
 std::vector<Test::GroundTruthLabel>

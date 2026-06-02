@@ -123,21 +123,8 @@ MainComponent::MainComponent()
 
     std::thread([this]() {
       Test tester;
-      AnalyzerConfig config;
-      const juce::String testFileName = "Baseline_Run_1";
-      config.medianFilter = true;
-      config.medianWindowSize = 5;
-      config.similarityThreshold = 0.8f;
-      config.s = 0.6f;
-
-      juce::File testDataDir(
-          "C:/Users/a930084/OneDrive - ATOS/Dokumente/ACR_App");
-      juce::File outputDir("C:/dev/ACR/TestResults");
-
-      if (!outputDir.exists())
-        outputDir.createDirectory();
-
-      tester.runTests(config, testDataDir, outputDir, testFileName);
+      // tester.runAllTests();
+      tester.findMaxima();
 
       // Update GUI, when Tests have finished
       juce::MessageManager::callAsync([this]() {

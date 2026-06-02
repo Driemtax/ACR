@@ -319,7 +319,9 @@ void ChromaAnalyzer::applyMedianFilter(juce::AudioBuffer<float> &chroma) {
   const int maxFrames = chroma.getNumChannels();
   int currentIndex = 0;
 
-  std::vector<float> currentValues(medianWindowSize, 0.0f);
+  // the loop from -medianMid to medianMid always produces 2 * medianMid
+  // + 1 iterations
+  std::vector<float> currentValues(2 * medianMid + 1, 0.0f);
 
   for (int frame = 0; frame < maxFrames; frame++) {
     float *outputFrame = chroma.getWritePointer(frame);
