@@ -8,11 +8,11 @@
 
 ChromaAnalyzer::ChromaAnalyzer(float sampleRate, float fftSize, float s,
                                int chromaRes, int medianWindow,
-                               bool medianFilter)
+                               bool medianFilter, bool tuningShift)
     : fftBinFrequencies(static_cast<int>(fftSize / 2)),
       binMids(chromaSize * chromaRes), harmonicWeights(8),
       resolution(chromaRes), s(s), medianWindow(medianWindow),
-      medianFilter(medianFilter) {
+      medianFilter(medianFilter), tuningShift(tuningShift) {
   int numBins = static_cast<int>(fftSize / 2);
 
   for (int i = 0; i < numBins; i++) {
@@ -54,6 +54,11 @@ void ChromaAnalyzer::extractChroma(const juce::AudioBuffer<float> &spectogram,
 
   // Normalize every frame
   normalizeBins(outChromagram);
+
+  // Scale chroma to 12 Pitch classes
+  if (tuningShift) {
+    scaleChroma(outChromagram);
+  }
 
   // Apply median filter
   if (medianFilter) {
@@ -343,6 +348,79 @@ void ChromaAnalyzer::applyMedianFilter(juce::AudioBuffer<float> &chroma) {
       outputFrame[bin] = currentValues[medianMid];
     }
   }
+}
+
+/**
+ * @brief Scales and compresses a high-resolution chromagram down to 12 standard
+ * pitch classes.
+ *
+ * This method calculates a global tuning profile across the entire track by
+ * aggregating energy over all frames for each sub-bin. It determines the
+ * optimal global tuning shift by finding the sub-bin offset with the maximum
+ * energy. Finally, it extracts the corresponding bins to compress the
+ * high-resolution data into a standard 12-bin chromagram, updating the provided
+ * buffer in-place. If the input buffer already contains exactly 12 bins, no
+ * processing is performed.
+ *
+ * @param chroma A reference to the audio buffer containing the high-resolution
+ * chromagram data. Upon completion, this buffer will be replaced with the
+ * compressed 12-bin chromagram.
+ */
+void ChromaAnalyzer::scaleChroma(juce::AudioBuffer<float> &chroma) const {
+  int numFrames = chroma.getNumChannels();
+  int numBins = chroma.getNumSamples();
+
+  std::cout << "Num Bins: " << numBins << std::endl;
+  // If there are only 12 bins no scaling needs to be applied.
+  if (numBins == 12) {
+    return;
+  }
+
+  std::vector<float> tuningProfile(resolution, 0.0f);
+
+  // 1. Global tuning profile over entire audio track
+  for (int f = 0; f < numFrames; f++) {
+    const float *frame = chroma.getReadPointer(f);
+    for (int b = 0; b < numBins; b++) {
+      tuningProfile[b % resolution] += frame[b];
+    }
+  }
+
+  // 2. Find the shift of the tuning (looking for most energy in sub bins)
+  int bestShift = 0;
+  float maxEnergy = -1.0f;
+
+  for (int r = 0; r < resolution; r++) {
+    if (tuningProfile[r] > maxEnergy) {
+      maxEnergy = tuningProfile[r];
+      bestShift = r;
+    }
+  }
+
+  int offset = bestShift;
+  if (bestShift > resolution / 2) {
+    offset = bestShift - resolution;
+  }
+
+  std::cout << "Offset: " << offset << std::endl;
+  // 3. Compress High res chroma to 12 bins
+  juce::AudioBuffer<float> finalChroma(numFrames, 12);
+
+  for (int f = 0; f < numFrames; f++) {
+    const float *inFrame = chroma.getReadPointer(f);
+    float *outFrame = finalChroma.getWritePointer(f);
+
+    for (int n = 0; n < 12; n++) {
+      // Pick the bin * resolution to get the right index and then shift
+      // accordingly.
+      int targetBin = (n * resolution + offset + numBins) % numBins;
+      outFrame[n] = inFrame[targetBin];
+    }
+  }
+
+  // AudioBuffer manages memory on its own, thats why the local variable pointer
+  // wont be overrided. It moves the actual data to outer scope memory regions.
+  chroma = std::move(finalChroma);
 }
 
 int ChromaAnalyzer::getChromaBinSize() const { return chromaSize * resolution; }

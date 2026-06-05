@@ -36,6 +36,8 @@ void Test::findMaxima() const {
 
 void Test::findMaximaMedianWindowSize() const {
   AnalyzerConfig config;
+  config.s = 0.5;
+  config.similarityThreshold = 0.3;
   const juce::String testfileName = "MedianMaximum";
 
   int bestWindowSize = 1;
@@ -64,7 +66,7 @@ void Test::findMaximaMedianWindowSize() const {
 void Test::findMaximaFloatParameters() const {
   AnalyzerConfig config;
   // Accpording to first tests the best value for accuracy.
-  config.medianWindowSize = 19;
+  config.medianWindowSize = 60;
   const juce::String testfileName = "FloatParametersMaximum";
 
   float bestS = 0.0f;

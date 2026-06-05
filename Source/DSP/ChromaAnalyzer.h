@@ -9,7 +9,7 @@
 class ChromaAnalyzer : public ChromaExtractorInterface {
 public:
   ChromaAnalyzer(float sampleRate, float fftSize, float s, int chromaRes,
-                 int medianWindow, bool medianFilter);
+                 int medianWindow, bool medianFilter, bool tuningShift);
   ~ChromaAnalyzer() = default;
 
   void extractChroma(const juce::AudioBuffer<float> &spectogram,
@@ -49,6 +49,7 @@ private:
   void calculateHarmonicWeights();
   void normalizeBins(juce::AudioBuffer<float> &outChroma);
   void applyMedianFilter(juce::AudioBuffer<float> &chroma);
+  void scaleChroma(juce::AudioBuffer<float> &chroma) const;
 
   std::vector<Peak> currentPeaks;
 
@@ -62,4 +63,5 @@ private:
 
   int medianWindow = 5;
   bool medianFilter = true;
+  bool tuningShift = true;
 };

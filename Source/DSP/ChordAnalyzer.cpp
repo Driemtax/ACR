@@ -14,7 +14,8 @@ ChordAnalyzer::ChordAnalyzer(AnalyzerConfig &config)
       hopSize(config.hopSize), medianFilter(config.medianFilter),
       medianWindowSize(config.medianWindowSize), s(config.s),
       similarityThreshold(config.similarityThreshold),
-      chromaRes(config.chromaRes), useDeepLearning(config.useDeepLearning) {}
+      chromaRes(config.chromaRes), useDeepLearning(config.useDeepLearning),
+      tuningShift(config.tuningShift) {}
 
 /**
  * Runs the complete chord analysis process on a given audio file.
@@ -64,7 +65,7 @@ ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
   } else {
     chromaProcessor = std::make_unique<ChromaAnalyzer>(
         static_cast<float>(reader->sampleRate), static_cast<float>(fftSize), s,
-        chromaRes, medianWindowSize, medianFilter);
+        chromaRes, medianWindowSize, medianFilter, tuningShift);
   }
 
   // Create Chromagram

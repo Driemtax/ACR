@@ -42,6 +42,7 @@ private:
   float similarityThreshold = 0.8f;
   int chromaRes = 1;
   int chromaSize = 12;
+  bool tuningShift = true;
 
   // Deep Chroma Extractor
   bool useDeepLearning = false;
