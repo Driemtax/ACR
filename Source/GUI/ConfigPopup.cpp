@@ -31,6 +31,13 @@ SettingsComponent::SettingsComponent(AnalyzerConfig &configToEdit,
     }
   };
 
+  addAndMakeVisible(TuningShiftToggle);
+  TuningShiftToggle.setToggleState(config.tuningShift,
+                                   juce::dontSendNotification);
+  TuningShiftToggle.onClick = [this] {
+    chromaResSlider.setEnabled(TuningShiftToggle.getToggleState());
+  };
+
   // configure sliders for range and default values
   auto setupSlider = [this](juce::Slider &sl, juce::Label &label, double min,
                             double max, double step, double val) {
@@ -64,6 +71,7 @@ SettingsComponent::SettingsComponent(AnalyzerConfig &configToEdit,
     config.s = static_cast<float>(sSlider.getValue());
     config.similarityThreshold = static_cast<float>(thresholdSlider.getValue());
     config.chromaRes = static_cast<int>(chromaResSlider.getValue());
+    config.tuningShift = TuningShiftToggle.getToggleState();
 
     if (onSaveCallback)
       onSaveCallback();
@@ -97,6 +105,9 @@ void SettingsComponent::resized() {
   layoutRow(medianWindowLabel, medianWindowSlider);
   layoutRow(sLabel, sSlider);
   layoutRow(thresholdLabel, thresholdSlider);
+
+  TuningShiftToggle.setBounds(margin, y, getWidth() - (margin * 2), height);
+  y += height + 10;
   layoutRow(chromaResLabel, chromaResSlider);
 
   saveButton.setBounds((getWidth() / 2) - 60, y + 10, 120, 40);

@@ -16,7 +16,7 @@ This project is being developed as part of a Bachelor's thesis.
 
 ---
 
-As seen above there are currently two analysis components. A spectogram of the audio signal, you have to input as a wav-File, and a chromagram, which maps the frequencies to the 12 notes of wester music. Both the spectogram and chromagram are clickable, resulting in a full window view.
+As seen above there are currently two analysis components. A spectogram of the audio signal, you have to input as a wav-File, and a chromagram, which maps the frequencies to the 12 notes of western music. Both the spectogram and chromagram are clickable, resulting in a full window view.
 
 | Full Spectogram | Full Chromagram |
 | :---: | :---: |

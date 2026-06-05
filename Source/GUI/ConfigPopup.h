@@ -45,6 +45,8 @@ private:
   juce::Slider chromaResSlider{juce::Slider::LinearHorizontal,
                                juce::Slider::TextBoxLeft};
 
+  juce::ToggleButton TuningShiftToggle{"Enable Tuning Shift"};
+
   juce::TextButton saveButton{"Save Settings"};
 };
 
