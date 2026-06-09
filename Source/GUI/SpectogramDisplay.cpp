@@ -1,6 +1,63 @@
 #include "SpectogramDisplay.h"
 #include "juce_audio_basics/juce_audio_basics.h"
+#include "juce_graphics/juce_graphics.h"
 #include <algorithm>
+#include <cmath>
+
+static void drawLabelsYAxis(juce::Graphics &g, const juce::Image &img,
+                            int width, int height,
+                            double sampleRate = 44100.0) {
+  g.fillAll(juce::Colours::black);
+
+  if (!img.isValid()) {
+    g.setColour(juce::Colours::grey);
+    g.drawFittedText("No Spectogram Data", 0, 0, width, height,
+                     juce::Justification::centred, 1);
+    return;
+  }
+
+  g.setImageResamplingQuality(
+      juce::Graphics::ResamplingQuality::lowResamplingQuality);
+
+  const int yAxisWidth = 50;
+  juce::Rectangle<int> imageBounds(yAxisWidth, 0, width - yAxisWidth, height);
+
+  g.drawImage(img, imageBounds.toFloat(),
+              juce::RectanglePlacement::stretchToFit, false);
+
+  int numTicks = 40;
+  double nyquistFreq = sampleRate / 2.0;
+  double minFreq = 50.0;
+
+  g.setFont(10.0f);
+  int lastTextYPos = imageBounds.getBottom() + 50;
+
+  for (int i = 0; i <= numTicks; ++i) {
+    double freq =
+        minFreq * std::pow(nyquistFreq / minFreq, (double)i / numTicks);
+    float fraction = (float)(freq / nyquistFreq);
+    int yPos =
+        imageBounds.getBottom() - (int)(fraction * imageBounds.getHeight());
+
+    juce::String freqStr = (freq >= 1000.0f)
+                               ? juce::String(freq / 1000.0f, 1) + " k"
+                               : juce::String((int)freq);
+
+    g.setColour(juce::Colours::white.withAlpha(0.6f));
+    g.drawLine(yAxisWidth - 5, yPos, yAxisWidth, yPos);
+
+    g.setColour(juce::Colours::white.withAlpha(0.15f));
+    g.drawLine(yAxisWidth, yPos, width, yPos);
+
+    // collision detection
+    if (lastTextYPos - yPos >= 14) {
+      g.setColour(juce::Colours::white);
+      g.drawText(freqStr, 0, yPos - 6, yAxisWidth - 8, 12,
+                 juce::Justification::centredRight);
+      lastTextYPos = yPos;
+    }
+  }
+}
 
 // =====================================================================================
 // Auxilary class to spawnm a new window of the needed size to display the
@@ -12,8 +69,7 @@ public:
   }
 
   void paint(juce::Graphics &g) override {
-    g.fillAll(juce::Colours::black);
-    g.drawImageAt(image, 0, 0);
+    drawLabelsYAxis(g, image, getWidth(), getHeight());
   }
 
 private:
@@ -123,18 +179,5 @@ void SpectogramDisplay::mouseDown([[maybe_unused]] const juce::MouseEvent &e) {
 }
 
 void SpectogramDisplay::paint(juce::Graphics &g) {
-  g.fillAll(juce::Colours::black);
-
-  if (spectogramImage.isValid()) {
-    g.setImageResamplingQuality(
-        juce::Graphics::ResamplingQuality::lowResamplingQuality);
-    g.drawImage(spectogramImage,
-                juce::Rectangle<float>(0, 0, (float)spectogramImage.getWidth(),
-                                       (float)spectogramImage.getHeight()),
-                juce::RectanglePlacement::stretchToFit, false);
-  } else {
-    g.setColour(juce::Colours::grey);
-    g.drawFittedText("No Spectogram Data", getLocalBounds(),
-                     juce::Justification::centred, 1);
-  }
+  drawLabelsYAxis(g, spectogramImage, getWidth(), getHeight());
 }
