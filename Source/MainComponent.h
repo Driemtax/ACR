@@ -40,6 +40,7 @@ private:
   // Buttons for recording and playing audio
   juce::TextButton recordButton{"Record"};
   juce::TextButton playButton{"Play"};
+  juce::TextButton stopButton{"Stop"};
 
   // Waveform component
   WaveformDisplay waveformDisplay{audioEngine};
@@ -52,7 +53,7 @@ private:
   SpectogramDisplay spectogramDisplay;
 
   // Chromagram
-  ChromaDisplay chromaDisplay;
+  ChromaDisplay chromaDisplay{audioEngine};
 
   // Classification
   std::unique_ptr<ChordAnalyzer> chordAnalyzer;

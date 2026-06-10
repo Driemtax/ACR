@@ -1,20 +1,97 @@
 #include "ChromaDisplay.h"
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_core/juce_core.h"
+#include "juce_events/juce_events.h"
 #include "juce_graphics/juce_graphics.h"
 #include "juce_gui_basics/juce_gui_basics.h"
 #include <algorithm>
 #include <vector>
 
 //==============================================================================
-class FullChromaImageComponent : public juce::Component {
+class FullChromaImageComponent : public juce::Component, public juce::Timer {
 public:
   FullChromaImageComponent(juce::Image img,
                            const std::vector<Classificator::ChordSegment> &segs,
-                           double sampleRate, int hopSize)
-      : image(img), segments(segs), sampleRate(sampleRate), hopSize(hopSize) {
+                           double sampleRate, int hopSize, int ppf,
+                           AudioEngine &engine)
+      : image(img), segments(segs), sampleRate(sampleRate), hopSize(hopSize),
+        pixelsPerFrame(ppf), audioEngine(engine) {
     setSize(image.getWidth() + leftMargin,
             image.getHeight() + bottomMargin + topMargin);
+
+    // This allows us to receive keyboard events
+    setWantsKeyboardFocus(true);
+
+    addAndMakeVisible(playButton);
+    playButton.setBounds(5, 5, 30, 20);
+    updateButtonState();
+
+    playButton.onClick = [this] {
+      if (audioEngine.getState() == AudioEngine::TransportState::Playing) {
+        audioEngine.stop();
+      } else {
+        audioEngine.startPlayback();
+      }
+      updateButtonState();
+    };
+
+    startTimerHz(30);
+  }
+
+  ~FullChromaImageComponent() override { stopTimer(); }
+
+  void timerCallback() override {
+    updateButtonState();
+
+    auto state = audioEngine.getState();
+    if (state == AudioEngine::TransportState::Playing ||
+        state == AudioEngine::TransportState::Paused) {
+      repaint();
+    } else if (state == AudioEngine::TransportState::Stopped) {
+      repaint();
+    }
+  }
+
+  void updateButtonState() {
+    if (audioEngine.getState() == AudioEngine::TransportState::Playing) {
+      playButton.setButtonText("Stop");
+      playButton.setColour(juce::TextButton::buttonColourId,
+                           juce::Colours::red);
+    } else {
+      playButton.setButtonText("Play");
+      playButton.setColour(juce::TextButton::buttonColourId,
+                           juce::Colours::darkgreen);
+    }
+  }
+
+  /**
+   * @brief Handles key press events for the component.
+   *
+   * Intercepts keyboard events and toggles the audio playback state when the
+   * spacebar is pressed.
+   *
+   * @param key The key press event containing information about the key
+   * pressed.
+   * @return true if the key event was consumed (spacebar), false otherwise.
+   */
+  bool keyPressed(const juce::KeyPress &key) override {
+    if (key.isKeyCode(juce::KeyPress::spaceKey)) {
+      auto currentState = audioEngine.getState();
+
+      if (currentState == AudioEngine::TransportState::Playing) {
+        audioEngine.pausePlayback();
+      } else if (currentState == AudioEngine::TransportState::Stopped ||
+                 currentState == AudioEngine::TransportState::Paused) {
+        audioEngine.startPlayback();
+      }
+
+      updateButtonState();
+      repaint();
+
+      return true; // consumed key event
+    }
+
+    return false; // ignore all other keys
   }
 
   void paint(juce::Graphics &g) override {
@@ -47,17 +124,19 @@ public:
     }
 
     // 2. x-axis: frames
-    float totalFrames = static_cast<float>(image.getWidth());
-    // float framesPerSecond = (float)sampleRate / (float)hopSize; // TODO:
-    // Werte überprüfen
-    float framesPerSecond = 86.13f;
-    int totalSeconds = (int)(totalFrames / framesPerSecond);
+    float totalFrames = static_cast<float>(image.getWidth()) /
+                        static_cast<float>(pixelsPerFrame);
+
+    float framesPerSecond =
+        static_cast<float>(sampleRate) / static_cast<float>(hopSize);
+    int totalSeconds = static_cast<int>(totalFrames / framesPerSecond);
 
     g.setFont(14.0f);
 
     for (int s = 0; s < totalSeconds; s++) {
-      float xPos = (s * framesPerSecond) + leftMargin;
-      float yBottom = (float)image.getHeight() + topMargin;
+      float frameIndex = s * framesPerSecond;
+      float xPos = (frameIndex * pixelsPerFrame) + leftMargin;
+      float yBottom = static_cast<float>(image.getHeight() + topMargin);
 
       g.drawLine(xPos, yBottom, xPos, yBottom + 5, 2.0f);
 
@@ -74,8 +153,10 @@ public:
       if (seg.chordName.isEmpty() || seg.chordName == "")
         continue;
 
-      float xStart = static_cast<float>(leftMargin + seg.startFrame);
-      float width = static_cast<float>(seg.endFrame - seg.startFrame);
+      float xStart =
+          static_cast<float>(leftMargin + (seg.startFrame * pixelsPerFrame));
+      float width =
+          static_cast<float>((seg.endFrame - seg.startFrame) * pixelsPerFrame);
 
       g.drawText(seg.chordName, static_cast<int>(xStart + 5), 0,
                  static_cast<int>(width), topMargin,
@@ -85,14 +166,39 @@ public:
       g.drawLine(xStart, 0, xStart, static_cast<float>(getHeight()), 1.0f);
       g.setColour(juce::Colours::orange);
     }
+
+    // 4. Playhead
+    auto currentState = audioEngine.getState();
+    if (currentState == AudioEngine::TransportState::Playing ||
+        currentState == AudioEngine::TransportState::Paused) {
+
+      double currentPos = audioEngine.getTransportSource().getCurrentPosition();
+      double totalLen = audioEngine.getTransportSource().getLengthInSeconds();
+
+      if (currentPos > 0.0 && totalLen > 0.0) {
+        // time (percentage) * width of image + margin
+        float playheadX =
+            static_cast<float>((currentPos / totalLen) * image.getWidth()) +
+            leftMargin;
+
+        g.setColour(juce::Colours::white);
+        g.drawLine(playheadX, 0.0f, playheadX, static_cast<float>(getHeight()),
+                   2.0f);
+      }
+    }
   }
 
 private:
+  AudioEngine &audioEngine;
+  juce::TextButton playButton{"Play"};
+
   juce::Image image;
   const std::vector<Classificator::ChordSegment> &segments;
   int leftMargin = 40;
   int bottomMargin = 30;
   int topMargin = 30;
+
+  int pixelsPerFrame;
 
   double sampleRate;
   int hopSize;
@@ -102,11 +208,12 @@ class ChromaWindow : public juce::DocumentWindow {
 public:
   ChromaWindow(const juce::String &name, juce::Image img,
                std::vector<Classificator::ChordSegment> &segments,
-               int screenHeight, double sampleRate, int hopSize)
+               int screenHeight, double sampleRate, int hopSize, int ppf,
+               AudioEngine &engine)
       : juce::DocumentWindow(name, juce::Colours::darkgrey,
                              DocumentWindow::allButtons) {
-    auto *content =
-        new FullChromaImageComponent(img, segments, sampleRate, hopSize);
+    auto *content = new FullChromaImageComponent(img, segments, sampleRate,
+                                                 hopSize, ppf, engine);
     viewport.setViewedComponent(content, true);
     setContentOwned(&viewport, false);
 
@@ -116,6 +223,7 @@ public:
     setResizable(true, true);
     centreWithSize(w, h);
     setVisible(true);
+    content->grabKeyboardFocus();
   }
 
   void closeButtonPressed() override { delete this; }
@@ -126,7 +234,7 @@ private:
 
 // =============================================================================
 
-ChromaDisplay::ChromaDisplay() {
+ChromaDisplay::ChromaDisplay(AudioEngine &engine) : audioEngine(engine) {
   setOpaque(true);
   setMouseCursor(juce::MouseCursor::PointingHandCursor);
 }
@@ -148,7 +256,11 @@ void ChromaDisplay::setChromaData(
   if (numFrames == 0 || numBins == 0)
     return;
 
-  int pixelsPerFrame = std::max(1, 800 / std::max(1, numFrames));
+  float framesPerSecond =
+      static_cast<float>(this->sampleRate) / static_cast<float>(this->hopSize);
+  float targetPixelsPerSecond = 86.0f;
+  pixelsPerFrame =
+      std::max(1, static_cast<int>(targetPixelsPerSecond / framesPerSecond));
   int imageWidth = numFrames * pixelsPerFrame;
 
   // Every bin is 66 pixel high, e.g. 12*66 = 792 pixel total
@@ -198,7 +310,7 @@ void ChromaDisplay::mouseDown([[maybe_unused]] const juce::MouseEvent &e) {
   if (chromaImage.isValid()) {
     int screenHeight = getParentMonitorArea().getHeight();
     new ChromaWindow("Chromagram", chromaImage, currentSegments, screenHeight,
-                     sampleRate, hopSize);
+                     sampleRate, hopSize, pixelsPerFrame, audioEngine);
   }
 }
 
@@ -238,7 +350,7 @@ void ChromaDisplay::paint(juce::Graphics &g) {
     }
 
     // 2. x-axis: frame count
-    int totalFrames = chromaImage.getWidth();
+    int totalFrames = chromaImage.getWidth() / pixelsPerFrame;
     int frameStep = 100;
 
     for (int f = 0; f < totalFrames; f += frameStep) {
