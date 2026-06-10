@@ -13,9 +13,9 @@ public:
   FullChromaImageComponent(juce::Image img,
                            const std::vector<Classificator::ChordSegment> &segs,
                            double sampleRate, int hopSize, int ppf,
-                           AudioEngine &engine)
+                           AudioEngine &engine, juce::Viewport *vp)
       : image(img), segments(segs), sampleRate(sampleRate), hopSize(hopSize),
-        pixelsPerFrame(ppf), audioEngine(engine) {
+        pixelsPerFrame(ppf), audioEngine(engine), viewport(vp) {
     setSize(image.getWidth() + leftMargin,
             image.getHeight() + bottomMargin + topMargin);
 
@@ -46,6 +46,35 @@ public:
     auto state = audioEngine.getState();
     if (state == AudioEngine::TransportState::Playing ||
         state == AudioEngine::TransportState::Paused) {
+
+      if (state == AudioEngine::TransportState::Playing &&
+          viewport != nullptr) {
+        double currentPos =
+            audioEngine.getTransportSource().getCurrentPosition();
+        double totalLen = audioEngine.getTransportSource().getLengthInSeconds();
+
+        if (currentPos > 0.0 && totalLen > 0.0) {
+          // 1. Playhead position
+          float playheadX =
+              static_cast<float>((currentPos / totalLen) * image.getWidth()) +
+              leftMargin;
+
+          // 2. viewport width
+          int viewWidth = viewport->getViewWidth();
+
+          // 3. new scroll position = playhead - (viewWidth / 2) -> centralized
+          int targetScrollX = static_cast<int>(playheadX) - (viewWidth / 2);
+
+          // 4. check boundaries
+          targetScrollX =
+              juce::jlimit(0, getWidth() - viewWidth, targetScrollX);
+
+          // 5. scroll
+          viewport->setViewPosition(targetScrollX,
+                                    viewport->getViewPositionY());
+        }
+      }
+
       repaint();
     } else if (state == AudioEngine::TransportState::Stopped) {
       repaint();
@@ -190,6 +219,7 @@ public:
 
 private:
   AudioEngine &audioEngine;
+  juce::Viewport *viewport;
   juce::TextButton playButton{"Play"};
 
   juce::Image image;
@@ -212,8 +242,8 @@ public:
                AudioEngine &engine)
       : juce::DocumentWindow(name, juce::Colours::darkgrey,
                              DocumentWindow::allButtons) {
-    auto *content = new FullChromaImageComponent(img, segments, sampleRate,
-                                                 hopSize, ppf, engine);
+    auto *content = new FullChromaImageComponent(
+        img, segments, sampleRate, hopSize, ppf, engine, &viewport);
     viewport.setViewedComponent(content, true);
     setContentOwned(&viewport, false);
 
