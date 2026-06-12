@@ -274,7 +274,8 @@ void MainComponent::runAnalysisOffline() {
     loadingText.setVisible(false);
     analyzeButton.setEnabled(true);
 
-    spectogramDisplay.setSpectogramData(res.spectogramData);
+    spectogramDisplay.setSpectogramData(res.spectogramData, res.sampleRate,
+                                        res.hopSize);
     spectogramDisplay.setVisible(true);
 
     chromaDisplay.setChromaData(res.chromagramData, res.chordSegments,

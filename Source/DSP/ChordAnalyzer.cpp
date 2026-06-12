@@ -81,6 +81,17 @@ ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
   std::vector<Classificator::ChordSegment> chordSegments =
       classifier.getGroupedSegments(classifiedFrames);
 
+  // Since the DeepLearning model uses linear scaled magnitudes we need to
+  // convert them to logarithmic scaled decibels before visualizing them.
+  if (useDeepLearning) {
+    for (int f = 0; f < numFrames; f++) {
+      float *frame = spectogramData.getWritePointer(f);
+      for (int b = 0; b < numBins; b++) {
+        frame[b] = juce::Decibels::gainToDecibels(frame[b], -100.0f);
+      }
+    }
+  }
+
   // Debug verification
   // Set this to true if you want to export the chroma as a json.
   // I used the json to verify my model outputs with the madmom library outputs.

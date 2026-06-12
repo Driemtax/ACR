@@ -3,6 +3,8 @@
 #include "juce_graphics/juce_graphics.h"
 #include <algorithm>
 #include <cmath>
+#include <iostream>
+#include <ostream>
 
 static void drawLabelsYAxis(juce::Graphics &g, const juce::Image &img,
                             int width, int height,
@@ -108,48 +110,65 @@ SpectogramDisplay::SpectogramDisplay() {
 
 // This function will be called from the thread analysing the audio, when the
 // Analysis has finished.
-void SpectogramDisplay::setSpectogramData(
-    const juce::AudioBuffer<float> &data) {
+void SpectogramDisplay::setSpectogramData(const juce::AudioBuffer<float> &data,
+                                          double sampleRate, int hopSize) {
   if (data.hasBeenCleared())
     return;
 
-  int numFrames = (int)data.getNumChannels();
-  int numBins = (int)data.getNumSamples();
+  int numFrames = static_cast<int>(data.getNumChannels());
+  int numBins = static_cast<int>(data.getNumSamples());
 
-  // dynamic scaling of width: at least 800 pixel
-  int pixelsPerFrame = std::max(1, 800 / std::max(1, numFrames));
+  if (numFrames == 0 || numBins == 0) {
+    return;
+  }
+
+  this->sampleRate = sampleRate;
+  this->hopSize = hopSize;
+
+  float framesPerSecond =
+      static_cast<float>(sampleRate) / static_cast<float>(hopSize);
+  float targetFPS = 43.0f;
+
+  int pixelsPerFrame =
+      std::max(1, static_cast<int>(targetFPS / framesPerSecond));
   int imageWidth = numFrames * pixelsPerFrame;
 
   // create an image of size (imageWidth * numBins)
   spectogramImage = juce::Image(juce::Image::RGB, imageWidth, numBins, true);
 
-  float minDb = 1000.0f;
   float maxDb = -1000.0f;
-
-  for (int f = 0; f < numFrames; f++) {
+  int maxDbFrame = -1;
+  int maxDbBin = -1;
+  for (int f = 1; f < numFrames - 1; f++) {
     const float *frame = data.getReadPointer(f);
     for (int bin = 0; bin < numBins; bin++) {
       float val = frame[bin];
-      if (val < minDb)
-        minDb = val;
-      if (val > maxDb)
+      if (val > maxDb) {
         maxDb = val;
+        maxDbFrame = f;
+        maxDbBin = bin;
+      }
     }
   }
 
-  if (maxDb - minDb < 0.1f)
-    maxDb = minDb + 1.0f;
-  const float dbRange = maxDb - minDb;
+  // set dynamic range
+  const float dynamicRange = 90.0f;
+  float minDb = maxDb - dynamicRange;
 
   // draw image pixel by pixel
   for (int x = 0; x < numFrames; x++) {
     const auto &frame = data.getReadPointer(x);
     for (int y = 0; y < numBins; y++) {
-      float dbValue = frame[y];
-      float normalizedValue = (dbValue - minDb) / dbRange;
+      float val = frame[y];
+
+      // clipping prevents negative values after normalizing.
+      if (val < minDb)
+        val = minDb;
+
+      float normalizedValue = (val - minDb) / dynamicRange;
 
       // This is to dampen the noise. Everything near to 1 stays there
-      float contrastValue = std::pow(normalizedValue, 3.0f);
+      float contrastValue = std::pow(normalizedValue, 2.0f);
 
       juce::Colour pixelColour =
           juce::Colours::black

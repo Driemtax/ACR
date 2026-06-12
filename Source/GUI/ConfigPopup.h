@@ -48,6 +48,10 @@ private:
   juce::ToggleButton TuningShiftToggle{"Enable Tuning Shift"};
 
   juce::TextButton saveButton{"Save Settings"};
+
+  void setDeepLearning();
+  void setHPCP();
+  void setUIDefaults();
 };
 
 class SettingsWindow : public juce::DocumentWindow {
