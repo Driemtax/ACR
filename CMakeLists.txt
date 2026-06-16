@@ -57,6 +57,14 @@ target_sources(ACR PRIVATE
     Source/MainComponent.h
     Source/Audio/AudioEngine.h
     Source/Audio/AudioEngine.cpp
+    Source/GUI/ScienceView.h
+    Source/GUI/ScienceView.cpp
+    Source/GUI/InstrumentComponent.h
+    Source/GUI/InstrumentComponent.cpp
+    Source/GUI/GuitarView.h
+    Source/GUI/GuitarView.cpp
+    Source/GUI/ChordInfoPanel.h
+    Source/GUI/ChordInfoPanel.cpp
     Source/GUI/WaveformDisplay.h
     Source/GUI/WaveformDisplay.cpp
     Source/GUI/SpectogramDisplay.h
