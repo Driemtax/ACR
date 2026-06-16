@@ -11,7 +11,7 @@
 
 class AudioEngine : public juce::AudioIODeviceCallback {
 public:
-  enum class TransportState { Stopped, Recording, Playing };
+  enum class TransportState { Stopped, Recording, Playing, Paused };
 
   AudioEngine();
   ~AudioEngine() override;
@@ -28,6 +28,7 @@ public:
   void startRecording();
   void stop();
   void startPlayback();
+  void pausePlayback();
 
   juce::AudioTransportSource &getTransportSource() { return transportSource; }
 

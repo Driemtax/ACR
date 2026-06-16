@@ -1,56 +1,55 @@
 #include "MainComponent.h"
 #include "Audio/AudioEngine.h"
-#include "DSP/AnalyzerConfig.h"
-#include "DSP/ChordAnalyzer.h"
-#include "GUI/ConfigPopup.h"
-#include "TestSetup/Test.h"
 #include "juce_audio_utils/juce_audio_utils.h"
-#include "juce_core/juce_core.h"
-#include "juce_events/juce_events.h"
-#include "juce_graphics/juce_graphics.h"
-#include "juce_gui_basics/juce_gui_basics.h"
 #include <memory>
-#include <thread>
 
-//==============================================================================
-// Parameters of audioSetupComp: minInput, maxInput, minOutput, maxOutput,
-// showMidiIn, showMidiOut, showStereo, hideAdvancedOptions
-MainComponent::MainComponent()
-    : audioSetupComp(audioEngine.getDeviceManager(), 0, 2, 0, 2, false, false,
-                     true, true) {
-  // Initialize and show Audio Device Selector dropdown
-  addAndMakeVisible(audioSetupComp);
+// =============================================================================
+// Helper: wraps AudioDeviceSelectorComponent in its own window
+// =============================================================================
+class AudioSettingsWindow : public juce::DocumentWindow {
+public:
+  AudioSettingsWindow(juce::AudioDeviceManager &dm)
+      : juce::DocumentWindow("Audio Settings", juce::Colours::darkgrey,
+                             DocumentWindow::closeButton),
+        audioSetupComp(dm, 0, 2, 0, 2, false, false, true, true) {
+    setContentNonOwned(&audioSetupComp, true);
+    setResizable(true, false);
+    centreWithSize(450, 350);
+    setVisible(true);
+  }
 
-  // Add Buttons for playing and recording audio
+  void closeButtonPressed() override { delete this; }
+
+private:
+  juce::AudioDeviceSelectorComponent audioSetupComp;
+};
+
+// =============================================================================
+// MainComponent
+// =============================================================================
+
+MainComponent::MainComponent() {
+  // Transport controls
   addAndMakeVisible(recordButton);
   addAndMakeVisible(playButton);
+  addAndMakeVisible(stopButton);
+  addAndMakeVisible(fileToAnalyze);
+  addAndMakeVisible(fileButton);
+  addAndMakeVisible(settingsButton);
 
-  // waveform component
+  // Waveform
   addAndMakeVisible(waveformDisplay);
 
-  // spectogram components
-  addAndMakeVisible(fileToAnalyze);
-  addAndMakeVisible(analyzeButton);
-  addAndMakeVisible(loadingText);
-  addAndMakeVisible(spectogramDisplay);
+  // Tab buttons
+  addAndMakeVisible(instrumentTab);
+  addAndMakeVisible(scienceTab);
 
-  // chromagram components
-  addAndMakeVisible(chromaDisplay);
+  // Views (both added, visibility controlled by switchToView)
+  addAndMakeVisible(instrumentView);
+  addAndMakeVisible(scienceView);
 
-  // File selection
-  addAndMakeVisible(fileButton);
+  // --- Button callbacks ---
 
-  // Test button
-  addAndMakeVisible(testButton);
-
-  // config Button
-  addAndMakeVisible(configButton);
-
-  loadingText.setJustificationType(juce::Justification::centred);
-  loadingText.setColour(juce::Label::textColourId, juce::Colours::orange);
-  loadingText.setVisible(false);
-
-  // click functions for buttons
   recordButton.onClick = [this] {
     if (audioEngine.getState() == AudioEngine::TransportState::Stopped) {
       audioEngine.startRecording();
@@ -62,43 +61,30 @@ MainComponent::MainComponent()
   };
 
   playButton.onClick = [this] {
-    if (audioEngine.getState() == AudioEngine::TransportState::Stopped) {
+    auto currentState = audioEngine.getState();
+    if (currentState == AudioEngine::TransportState::Stopped ||
+        currentState == AudioEngine::TransportState::Paused) {
       audioEngine.startPlayback();
-    } else if (audioEngine.getState() == AudioEngine::TransportState::Playing) {
+    } else if (currentState == AudioEngine::TransportState::Playing) {
+      audioEngine.pausePlayback();
+    }
+    updateTransportState();
+  };
+
+  stopButton.onClick = [this] {
+    auto currentState = audioEngine.getState();
+    if (currentState == AudioEngine::TransportState::Playing ||
+        currentState == AudioEngine::TransportState::Paused) {
       audioEngine.stop();
     }
     updateTransportState();
   };
 
-  analyzeButton.onClick = [this] {
-    analyzeButton.setEnabled(false);
-    loadingText.setVisible(true);
-    spectogramDisplay.setVisible(false);
-    chromaDisplay.setVisible(false);
-
-    if (config.useDeepLearning) {
-      config.setToDeepLearningDefaults();
-    }
-
-    // initialize chordAnalyzer
-    chordAnalyzer = std::make_unique<ChordAnalyzer>(config);
-
-    std::thread([this]() { runAnalysisOffline(); }).detach();
-  };
-
-  configButton.onClick = [this] {
-    if (settingsWindow != nullptr) {
-      return;
-    }
-
-    settingsWindow = new SettingsWindow("Analysis Settings", config);
-  };
-
   fileButton.onClick = [this] {
-    fileChooser = std::make_unique<juce::FileChooser>(
-        "Select a WAV file",
-        juce::File::getSpecialLocation(juce::File::userMusicDirectory),
-        "*.wav");
+    juce::File appDir =
+        audioEngine.getDefaultRecordingFile().getParentDirectory();
+    fileChooser = std::make_unique<juce::FileChooser>("Select an audio file",
+                                                      appDir, "*.wav,*.mp3");
 
     auto chooserFlags = juce::FileBrowserComponent::openMode |
                         juce::FileBrowserComponent::canSelectFiles;
@@ -112,32 +98,19 @@ MainComponent::MainComponent()
     });
   };
 
-  testButton.onClick = [this] {
-    testButton.setEnabled(false);
-    loadingText.setText("Running Tests...", juce::dontSendNotification);
-    loadingText.setVisible(true);
-    analyzeButton.setEnabled(false);
-    fileButton.setEnabled(false);
-    playButton.setEnabled(false);
-    recordButton.setEnabled(false);
-
-    std::thread([this]() {
-      Test tester;
-      // tester.runAllTests();
-      tester.findMaxima();
-
-      // Update GUI, when Tests have finished
-      juce::MessageManager::callAsync([this]() {
-        loadingText.setText("Tests Finished!", juce::dontSendNotification);
-        testButton.setEnabled(true);
-        recordButton.setEnabled(true);
-        playButton.setEnabled(true);
-        analyzeButton.setEnabled(true);
-        fileButton.setEnabled(true);
-      });
-    }).detach();
+  settingsButton.onClick = [this] {
+    if (audioSettingsWindow != nullptr)
+      return;
+    audioSettingsWindow =
+        new AudioSettingsWindow(audioEngine.getDeviceManager());
   };
 
+  // Tab switching
+  instrumentTab.onClick = [this] { switchToView(ActiveView::Instrument); };
+  scienceTab.onClick = [this] { switchToView(ActiveView::Science); };
+
+  // Initial state
+  switchToView(ActiveView::Instrument);
   updateTransportState();
   audioEngine.getTransportSource().addChangeListener(this);
 }
@@ -146,7 +119,35 @@ MainComponent::~MainComponent() {
   audioEngine.getTransportSource().removeChangeListener(this);
 }
 
-//==============================================================================
+// =============================================================================
+// View switching
+// =============================================================================
+
+void MainComponent::switchToView(ActiveView view) {
+  activeView = view;
+
+  instrumentView.setVisible(view == ActiveView::Instrument);
+  scienceView.setVisible(view == ActiveView::Science);
+
+  // Highlight active tab
+  auto defaultColour =
+      getLookAndFeel().findColour(juce::TextButton::buttonColourId);
+  auto activeColour = juce::Colours::steelblue;
+
+  instrumentTab.setColour(juce::TextButton::buttonColourId,
+                          view == ActiveView::Instrument ? activeColour
+                                                         : defaultColour);
+  scienceTab.setColour(juce::TextButton::buttonColourId,
+                       view == ActiveView::Science ? activeColour
+                                                   : defaultColour);
+
+  resized();
+}
+
+// =============================================================================
+// Transport state
+// =============================================================================
+
 void MainComponent::updateTransportState() {
   auto state = audioEngine.getState();
 
@@ -156,12 +157,18 @@ void MainComponent::updateTransportState() {
                            juce::Colours::green);
     playButton.setEnabled(false);
   } else if (state == AudioEngine::TransportState::Playing) {
-    playButton.setButtonText("Stop");
+    playButton.setButtonText("Pause");
     playButton.setColour(juce::TextButton::buttonColourId,
                          juce::Colours::greenyellow);
+    stopButton.setButtonText("Stop");
     recordButton.setEnabled(false);
+  } else if (state == AudioEngine::TransportState::Paused) {
+    playButton.setButtonText("Resume");
+    playButton.setColour(juce::TextButton::buttonColourId,
+                         juce::Colours::orange);
+    stopButton.setButtonText("Stop");
   } else {
-    // Stopped state
+    // Stopped
     recordButton.setButtonText("Record");
     recordButton.setColour(
         juce::TextButton::buttonColourId,
@@ -179,10 +186,8 @@ void MainComponent::updateTransportState() {
   if (file.existsAsFile()) {
     fileToAnalyze.setText("File: " + file.getFileName(),
                           juce::dontSendNotification);
-    analyzeButton.setEnabled(state == AudioEngine::TransportState::Stopped);
   } else {
-    fileToAnalyze.setText("No file recorded yet.", juce::dontSendNotification);
-    analyzeButton.setEnabled(false);
+    fileToAnalyze.setText("No file loaded.", juce::dontSendNotification);
   }
 }
 
@@ -191,66 +196,49 @@ void MainComponent::handleAsyncUpdate() { updateTransportState(); }
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster *source) {
   if (source == &audioEngine.getTransportSource()) {
     if (!audioEngine.getTransportSource().isPlaying()) {
-      audioEngine.stop();
-      triggerAsyncUpdate();
+      double currentPos = audioEngine.getTransportSource().getCurrentPosition();
+      double totalLen = audioEngine.getTransportSource().getLengthInSeconds();
+
+      if (currentPos >= totalLen - 0.1) {
+        audioEngine.stop();
+        triggerAsyncUpdate();
+      }
     }
   }
 }
 
-//==============================================================================
+// =============================================================================
+// Paint & Layout
+// =============================================================================
+
 void MainComponent::paint(juce::Graphics &g) {
-  // (Our component is opaque, so we must completely fill the background with a
-  // solid colour)
   g.fillAll(
       getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
-
-  // You can add your drawing code here!
 }
 
 void MainComponent::resized() {
-  // This is called when the MainContentComponent is resized.
-  // If you add any child components, this is where you should
-  // update their positions.
+  auto area = getLocalBounds();
 
-  // Audio Device Selector on top
-  audioSetupComp.setBounds(10, 10, getWidth() - 20, 200);
+  // --- Transport Bar (top, 40px) ---
+  auto transportBar = area.removeFromTop(40);
+  recordButton.setBounds(transportBar.removeFromLeft(100).reduced(4));
+  playButton.setBounds(transportBar.removeFromLeft(100).reduced(4));
+  stopButton.setBounds(transportBar.removeFromLeft(100).reduced(4));
+  fileToAnalyze.setBounds(transportBar.removeFromLeft(200).reduced(4));
+  fileButton.setBounds(transportBar.removeFromLeft(110).reduced(4));
+  settingsButton.setBounds(transportBar.removeFromRight(100).reduced(4));
 
-  // Play and Record Buttons
-  recordButton.setBounds(10, 380, 120, 40);
-  playButton.setBounds(140, 380, 120, 40);
+  // --- Waveform (120px) ---
+  waveformDisplay.setBounds(area.removeFromTop(120).reduced(4));
 
-  // waveform component
-  waveformDisplay.setBounds(10, 220, getWidth() - 20, 150);
+  // --- Tab Bar (36px) ---
+  auto tabBar = area.removeFromTop(36);
+  instrumentTab.setBounds(tabBar.removeFromLeft(150).reduced(2));
+  scienceTab.setBounds(tabBar.removeFromLeft(150).reduced(2));
 
-  fileToAnalyze.setBounds(270, 380, 200, 40);
-  analyzeButton.setBounds(480, 380, 120, 40);
-  loadingText.setBounds(270, 430, 180, 40);
-  int spectoWidth = (getWidth() - 20) / 2;
-  spectogramDisplay.setBounds(10, 430, spectoWidth, 350);
-
-  chromaDisplay.setBounds(spectoWidth + 10, 430, spectoWidth, 350);
-
-  fileButton.setBounds(620, 380, 120, 40);
-
-  testButton.setBounds(780, 380, 120, 40);
-
-  configButton.setBounds(920, 380, 120, 40);
-}
-
-void MainComponent::runAnalysisOffline() {
-  auto file = audioEngine.getAudioFilePath();
-  auto result = chordAnalyzer->runAnalysis(file);
-  // This functions runs in a seperate thread and notifys the calling thread
-  // (GUI-Thread) when it has finished. Then this function will be executed.
-  juce::MessageManager::callAsync([this, res = std::move(result)]() {
-    loadingText.setVisible(false);
-    analyzeButton.setEnabled(true);
-
-    spectogramDisplay.setSpectogramData(res.spectogramData);
-    spectogramDisplay.setVisible(true);
-
-    chromaDisplay.setChromaData(res.chromagramData, res.chordSegments,
-                                res.sampleRate, res.hopSize);
-    chromaDisplay.setVisible(true);
-  });
+  // --- Active View (remaining space) ---
+  if (activeView == ActiveView::Instrument)
+    instrumentView.setBounds(area);
+  else
+    scienceView.setBounds(area);
 }

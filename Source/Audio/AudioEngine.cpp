@@ -164,8 +164,10 @@ void AudioEngine::stop() {
   {
     juce::ScopedLock audioLock(deviceManager.getAudioCallbackLock());
 
-    if (state.load() == TransportState::Playing) {
+    if (state.load() == TransportState::Playing ||
+        state.load() == TransportState::Paused) {
       transportSource.stop();
+      transportSource.setPosition(0.0);
       transportSource.setSource(nullptr);
     }
 
@@ -173,20 +175,36 @@ void AudioEngine::stop() {
   }
 }
 
+void AudioEngine::pausePlayback() {
+  if (state.load() != TransportState::Playing) {
+    return;
+  }
+
+  // lock audio thread
+  juce::ScopedLock audioLock(deviceManager.getAudioCallbackLock());
+  transportSource.stop();
+
+  state.store(TransportState::Paused);
+}
+
 /**
- * @brief Starts the audio playback process.
+ * @brief Starts or resumes playback of the current audio file.
  *
- * This method initiates playback by reading the current audio file and
- * configuring the necessary audio format reader. It also updates the audio
- * thumbnail to visualize the file being played and sets the internal transport
- * state to indicate that playback is active. If the file being played is the
- * default recording, some gain is applied to compensate for lower recording
- * levels. If the transport state is not currently stopped, this method returns
- * immediately without doing anything.
+ * If the playback is currently paused, it will be resumed. If it is stopped,
+ * the method reads the audio file, configures the audio format reader, updates
+ * the audio thumbnail, and starts playback from the beginning. It also applies
+ * a predefined gain if the default recording file is being played. If the
+ * engine is already playing or recording, this method has no effect.
  */
 void AudioEngine::startPlayback() {
-  if (state != TransportState::Stopped)
+  if (state == TransportState::Recording || state == TransportState::Playing)
     return;
+
+  if (state == TransportState::Paused) {
+    transportSource.start();
+    state.store(TransportState::Playing);
+    return;
+  }
 
   auto file = getAudioFilePath();
 

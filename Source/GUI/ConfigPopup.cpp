@@ -19,15 +19,10 @@ SettingsComponent::SettingsComponent(AnalyzerConfig &configToEdit,
                                        juce::dontSendNotification);
   useDeepLearningToggle.onClick = [this] {
     if (useDeepLearningToggle.getToggleState()) {
-      // auto-set madmom defaults
-      fftOrderSlider.setValue(13);
-      hopSizeSlider.setValue(4410);
+      setDeepLearning();
 
-      fftOrderSlider.setEnabled(false);
-      hopSizeSlider.setEnabled(false);
     } else {
-      fftOrderSlider.setEnabled(true);
-      hopSizeSlider.setEnabled(true);
+      setHPCP();
     }
   };
 
@@ -49,7 +44,7 @@ SettingsComponent::SettingsComponent(AnalyzerConfig &configToEdit,
 
   setupSlider(fftOrderSlider, fftOrderLabel, 8, 14, 1, config.fftOrder);
   setupSlider(hopSizeSlider, hopSizeLabel, 128, 8192, 1, config.hopSize);
-  setupSlider(medianWindowSlider, medianWindowLabel, 1, 21, 1,
+  setupSlider(medianWindowSlider, medianWindowLabel, 1, 60, 1,
               config.medianWindowSize);
   setupSlider(sSlider, sLabel, 0.1, 1.0, 0.05, config.s);
   setupSlider(thresholdSlider, thresholdLabel, 0.0, 1.0, 0.05,
@@ -59,6 +54,9 @@ SettingsComponent::SettingsComponent(AnalyzerConfig &configToEdit,
   addAndMakeVisible(medianFilterToggle);
   medianFilterToggle.setToggleState(config.medianFilter,
                                     juce::dontSendNotification);
+  medianFilterToggle.onClick = [this] {
+    medianWindowSlider.setEnabled(medianFilterToggle.getToggleState());
+  };
 
   addAndMakeVisible(saveButton);
   saveButton.onClick = [this] {
@@ -77,7 +75,69 @@ SettingsComponent::SettingsComponent(AnalyzerConfig &configToEdit,
       onSaveCallback();
   };
 
+  if (config.useDeepLearning) {
+    setDeepLearning();
+  }
+
+  if (!config.tuningShift) {
+    chromaResSlider.setEnabled(false);
+  }
+
+  if (!config.medianFilter) {
+    medianWindowSlider.setEnabled(false);
+  }
+
   setSize(400, 500);
+}
+
+void SettingsComponent::setDeepLearning() {
+  // auto-set madmom defaults
+  fftOrderSlider.setValue(13);
+  hopSizeSlider.setValue(4410);
+
+  // Disable all settings
+  fftOrderSlider.setEnabled(false);
+  hopSizeSlider.setEnabled(false);
+  medianFilterToggle.setEnabled(false);
+  medianWindowSlider.setEnabled(false);
+  sSlider.setEnabled(false);
+  thresholdSlider.setEnabled(false);
+  chromaResSlider.setEnabled(false);
+  TuningShiftToggle.setEnabled(false);
+}
+
+void SettingsComponent::setHPCP() {
+  // Enable all settings an reset to defaults
+  config.setToDefaults();
+
+  fftOrderSlider.setEnabled(true);
+  hopSizeSlider.setEnabled(true);
+  medianFilterToggle.setEnabled(true);
+  if (config.medianFilter) {
+    medianWindowSlider.setEnabled(true);
+  }
+  sSlider.setEnabled(true);
+  thresholdSlider.setEnabled(true);
+  TuningShiftToggle.setEnabled(true);
+  if (config.tuningShift) {
+    chromaResSlider.setEnabled(true);
+  }
+
+  // update UI
+  setUIDefaults();
+}
+
+void SettingsComponent::setUIDefaults() {
+  fftOrderSlider.setValue(config.fftOrder);
+  hopSizeSlider.setValue(config.hopSize);
+  medianFilterToggle.setToggleState(config.medianFilter,
+                                    juce::dontSendNotification);
+  medianWindowSlider.setValue(config.medianWindowSize);
+  sSlider.setValue(config.s);
+  thresholdSlider.setValue(config.similarityThreshold);
+  chromaResSlider.setValue(config.chromaRes);
+  TuningShiftToggle.setToggleState(config.tuningShift,
+                                   juce::dontSendNotification);
 }
 
 void SettingsComponent::resized() {

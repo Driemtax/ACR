@@ -22,12 +22,12 @@ struct AnalyzerConfig {
   // 3. HPCP specific parameters
   int chromaRes = 1;
   bool medianFilter = true;
-  int medianWindowSize = 5;
+  int medianWindowSize = 19;
   float s = 0.6f;
   bool tuningShift = true;
 
   // 4. Classification
-  float similarityThreshold = 0.8f;
+  float similarityThreshold = 0.3f;
 
   // Helper to safely set ML defaults
   void setToDeepLearningDefaults() {
@@ -38,5 +38,24 @@ struct AnalyzerConfig {
     normalizeAudio = false;     // madmom does not normalize
     centerOriginPadding = true; // madmom uses cetner-origin framing
     convertToDecibel = false;   // madmom uses linear scaled fft magnitudes
+
+    similarityThreshold = 0.8f; // ML Vectors seem to work better with a higher
+                                // similarityThreshold!
+  }
+
+  void setToDefaults() {
+    useDeepLearning = false;
+    fftOrder = 12;
+    fftSize = 4096;
+    hopSize = 512;
+    medianWindowSize = 19;
+    s = 0.6f;
+    similarityThreshold = 0.3f;
+    centerOriginPadding = false;
+    convertToDecibel = true;
+    tuningShift = true;
+    chromaRes = 1;
+    medianFilter = true;
+    normalizeAudio = true;
   }
 };

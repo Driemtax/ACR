@@ -2,75 +2,62 @@
 
 #include "Audio/AudioEngine.h"
 #include "DSP/AnalyzerConfig.h"
-#include "DSP/ChordAnalyzer.h"
-#include "GUI/ChromaDisplay.h"
-#include "GUI/SpectogramDisplay.h"
+#include "GUI/InstrumentComponent.h"
+#include "GUI/ScienceView.h"
 #include "GUI/WaveformDisplay.h"
 #include "juce_audio_utils/juce_audio_utils.h"
-#include "juce_core/juce_core.h"
+#include "juce_core/system/juce_PlatformDefs.h"
 #include "juce_events/juce_events.h"
+#include "juce_graphics/juce_graphics.h"
 #include "juce_gui_basics/juce_gui_basics.h"
 #include <JuceHeader.h>
 #include <memory>
 
-//==============================================================================
-/*
-    This component lives inside our window, and this is where you should put all
-    your controls and content.
-*/
 class MainComponent : public juce::Component,
                       private juce::AsyncUpdater,
                       private juce::ChangeListener {
+
 public:
-  //==============================================================================
   MainComponent();
   ~MainComponent() override;
 
-  //==============================================================================
   void paint(juce::Graphics &g) override;
   void resized() override;
   void handleAsyncUpdate() override;
   void changeListenerCallback(juce::ChangeBroadcaster *source) override;
 
 private:
-  //==============================================================================
   AudioEngine audioEngine;
-  juce::AudioDeviceSelectorComponent audioSetupComp;
+  AnalyzerConfig config;
 
-  // Buttons for recording and playing audio
+  // --- Global Transport Bar ---
   juce::TextButton recordButton{"Record"};
   juce::TextButton playButton{"Play"};
-
-  // Waveform component
-  WaveformDisplay waveformDisplay{audioEngine};
-
-  // Spectogram
+  juce::TextButton stopButton{"Stop"};
   juce::Label fileToAnalyze;
-  juce::TextButton analyzeButton{"Analyze"};
-  // loading animation for spectogram
-  juce::Label loadingText{"Loading", "Analyse spectogram..."};
-  SpectogramDisplay spectogramDisplay;
-
-  // Chromagram
-  ChromaDisplay chromaDisplay;
-
-  // Classification
-  std::unique_ptr<ChordAnalyzer> chordAnalyzer;
-
-  // File selection
-  juce::TextButton fileButton{"Open File "};
+  juce::TextButton fileButton{"Open File"};
+  juce::TextButton settingsButton{"Settings"};
   std::unique_ptr<juce::FileChooser> fileChooser;
 
-  // Test Button
-  juce::TextButton testButton{"Test"};
+  // Audio device settings window
+  juce::Component::SafePointer<juce::DocumentWindow> audioSettingsWindow;
 
-  // Config Button
-  AnalyzerConfig config;
-  juce::TextButton configButton{"Config"};
-  juce::Component::SafePointer<juce::DocumentWindow> settingsWindow;
+  // Waveform (always visible)
+  WaveformDisplay waveformDisplay{audioEngine};
 
+  // --- View Switching ---
+  juce::TextButton instrumentTab{"Instrument"};
+  juce::TextButton scienceTab{"Analyze"};
+
+  // --- Views ---
+  InstrumentComponent instrumentView{audioEngine};
+  ScienceView scienceView{audioEngine, config};
+
+  enum class ActiveView { Instrument, Science };
+  ActiveView activeView = ActiveView::Instrument;
+
+  void switchToView(ActiveView view);
   void updateTransportState();
-  void runAnalysisOffline();
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };
