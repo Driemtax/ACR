@@ -6,6 +6,7 @@
 #include "juce_events/juce_events.h"
 #include "juce_graphics/juce_graphics.h"
 #include "juce_gui_basics/juce_gui_basics.h"
+#include <algorithm>
 #include <memory>
 #include <thread>
 
@@ -105,6 +106,16 @@ void ScienceView::runAnalysisOffline() {
   auto file = audioEngine.getAudioFilePath();
   auto result = chordAnalyzer->runAnalysis(file);
 
-  juce::MessageManager::callAsync(
-      [this, res = std::move(result)]() mutable { showAnalysisResults(res); });
+  auto segmentsCopy = result.chordSegments;
+  double sampleRate = result.sampleRate;
+  int hopSize = result.hopSize;
+
+  juce::MessageManager::callAsync([this, res = std::move(result),
+                                   segments = std::move(segmentsCopy),
+                                   sampleRate, hopSize]() mutable {
+    showAnalysisResults(res);
+    if (onAnalysisCompletion) {
+      onAnalysisCompletion(segments, sampleRate, hopSize);
+    }
+  });
 }

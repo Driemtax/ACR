@@ -1,7 +1,9 @@
 #include "MainComponent.h"
 #include "Audio/AudioEngine.h"
+#include "DSP/Classificator.h"
 #include "juce_audio_utils/juce_audio_utils.h"
 #include <memory>
+#include <vector>
 
 // =============================================================================
 // Helper: wraps AudioDeviceSelectorComponent in its own window
@@ -108,6 +110,13 @@ MainComponent::MainComponent() {
   // Tab switching
   instrumentTab.onClick = [this] { switchToView(ActiveView::Instrument); };
   scienceTab.onClick = [this] { switchToView(ActiveView::Science); };
+
+  // Callback for analysis results
+  scienceView.onAnalysisCompletion =
+      [this](const std::vector<Classificator::ChordSegment> &segments,
+             double sampleRate, int hopSize) {
+        instrumentView.setTimeline(segments, sampleRate, hopSize);
+      };
 
   // Initial state
   switchToView(ActiveView::Instrument);

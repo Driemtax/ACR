@@ -8,10 +8,10 @@
 GuitarView::GuitarView(AudioEngine &engine) : audioEngine(engine) {
   setLabels({
       {1, 0, "E", juce::Colours::steelblue},
-      {2, 0, "A", juce::Colours::steelblue},
-      {3, 0, "D", juce::Colours::steelblue},
-      {4, 0, "G", juce::Colours::steelblue},
-      {5, 0, "B", juce::Colours::steelblue},
+      {2, 0, "B", juce::Colours::steelblue},
+      {3, 0, "G", juce::Colours::steelblue},
+      {4, 0, "D", juce::Colours::steelblue},
+      {5, 0, "A", juce::Colours::steelblue},
       {6, 0, "E", juce::Colours::steelblue},
   });
 }
@@ -34,7 +34,7 @@ juce::Rectangle<float> GuitarView::getFretboardBounds() const {
   // Margins: left for open-string labels, top for fret numbers
   const float left = 45.0f;
   const float right = 15.0f;
-  const float top = 28.0f;
+  const float top = 38.0f;
   const float bottom = 20.0f;
 
   return {left, top, getWidth() - left - right, getHeight() - top - bottom};
@@ -58,7 +58,7 @@ float GuitarView::getFretX(int fret) const {
 float GuitarView::getStringY(int string) const {
   auto fb = getFretboardBounds();
 
-  // String 1 (low E) at top, string 6 (high E) at bottom.
+  // String 1 (high E) at top, string 6 (low E) at bottom.
   // Add inner padding so strings don't sit in the very edge of the wood.
   float padding = fb.getHeight() * 0.08f;
   float usable = fb.getHeight() - 2.0f * padding;
@@ -123,15 +123,15 @@ void GuitarView::drawFrets(juce::Graphics &g) {
 void GuitarView::drawStrings(juce::Graphics &g) {
   auto fb = getFretboardBounds();
 
-  // Thickness per string (low E -> high E)
-  const float gauges[] = {3.0f, 2.5f, 2.0f, 1.5f, 1.2f, 1.0f};
+  // Thickness per string (high E -> low E)
+  const float gauges[] = {1.0f, 1.2f, 1.5f, 2.0f, 2.5f, 3.0f};
 
   for (int s = 1; s <= numStrings; s++) {
     float y = getStringY(s);
     float thickness = gauges[s - 1];
 
-    // wound bronze (strings 1-3) vs plain steel (strings 4-6)
-    g.setColour(s <= 3 ? juce::Colour(0xFFB8860B) : juce::Colour(0xFFD4D4D4));
+    // plain steel (strings 1-3) vs wound bronze (strings 4-6)
+    g.setColour(s <= 3 ? juce::Colour(0xFFD4D4D4) : juce::Colour(0xFFB8860B));
     g.drawLine(fb.getX(), y, fb.getRight(), y, thickness);
   }
 }
@@ -168,15 +168,17 @@ void GuitarView::drawInlays(juce::Graphics &g) {
 void GuitarView::drawFretNumbers(juce::Graphics &g) {
   auto fb = getFretboardBounds();
 
-  g.setColour(juce::Colours::grey);
-  g.setFont(11.0f);
+  g.setColour(juce::Colours::lightgrey);
+  g.setFont(22.0f);
 
   for (int fret = 1; fret <= numFrets; fret++) {
-    float cx = (getFretX(fret - 1) + getFretX(fret)) / 2.0f;
+    float left = getFretX(fret - 1);
+    float right = getFretX(fret);
+    float fretWidth = right - left;
 
-    g.drawText(juce::String(fret), static_cast<int>(cx - 10),
-               static_cast<int>(fb.getBottom() + 3), 20, 18,
-               juce::Justification::centredTop);
+    g.drawText(juce::String(fret), static_cast<int>(left),
+               static_cast<int>(fb.getY() - 30), static_cast<int>(fretWidth),
+               26, juce::Justification::centred);
   }
 }
 
@@ -203,7 +205,7 @@ void GuitarView::drawLabels(juce::Graphics &g) {
     float fretWidth = (label.fret > 0)
                           ? getFretX(label.fret) - getFretX(label.fret - 1)
                           : 30.0f;
-    float labelW = juce::jlimit(18.0f, 28.0f, fretWidth * 0.7f);
+    float labelW = juce::jlimit(18.0f, 45.0f, fretWidth * 0.7f);
     float labelH = labelW * 0.75f;
 
     auto bounds = juce::Rectangle<float>(x - labelW / 2.0f, y - labelH / 2.0f,

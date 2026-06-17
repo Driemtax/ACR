@@ -87,6 +87,8 @@ target_sources(ACR PRIVATE
     Source/ML/DeepChromaExtractor.h
     Source/ML/DeepChromaExtractor.cpp
     Source/ML/FilterbankWeights.h
+    Source/Util/FretboardMapper.h
+    Source/Util/FretboardMapper.cpp
 )
 
 # ==============================================================================
