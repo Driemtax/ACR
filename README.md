@@ -1,77 +1,130 @@
-# ACR - Automatic Chord Recognition
+# ACR — Automatic Chord Recognition
 
-This project is a scientific desktop application for Music Information Retrieval (MIR), developed in C++ using the JUCE framework, focused on Automatic Chord Recognition. 
+ACR is a desktop application for real-time chord recognition and fretboard visualization, built in C++ with the [JUCE](https://juce.com/) framework.
 
-The core objective of the application is the research and implementation of **Deep Chroma Learning**. Currently, a highly optimized, classical DSP pipeline (Harmonic Pitch Class Profiles + Cosine Similarity) serves as a scientific baseline. Throughout the project, this baseline will be extended or replaced by deep learning approaches.
+It was developed as part of a Bachelor's thesis investigating the accuracy of two chromagram extraction methods — **Harmonic Pitch Class Profiles (HPCP)** and **Deep Chroma Learning (madmom DNN)** — with a particular focus on their performance on **distorted electric guitar signals**.
 
-This project is being developed as part of a Bachelor's thesis.
-
----
-
-## Screenshots
-
-| Start Screen (Recording & Playback) | Analysis View (Spectrogram & Chromagram) |
-| :---: | :---: |
-| ![Start Screen](Docs/Assets/Scientific_Tool_Start_Screen.png) | ![Analyze Screen](Docs/Assets/Scientific_Tool_Analyze_Screen.png) |
+Beyond the research component, the application serves as a practical tool: it analyzes backing tracks, identifies chord progressions, and visualizes chord tones on a guitar fretboard in real time to support improvisation practice.
 
 ---
 
-As seen above there are currently two analysis components. A spectogram of the audio signal, you have to input as a wav-File, and a chromagram, which maps the frequencies to the 12 notes of western music. Both the spectogram and chromagram are clickable, resulting in a full window view.
+## Features
+
+### Dual-Mode Interface
+
+The application is split into two views, switchable via tabs:
+
+**Instrument view** — the primary mode for playing along with a track.
+
+<!-- TODO: Screenshot of Performance View -->
+![Instrument View](Docs/Assets/placeholder_performance_view.png)
+
+- Interactive guitar fretboard displaying all chord tone positions
+- Color-coded by interval (root, third, fifth)
+- "Now Playing" and "Up Next" chord display panel
+- Updates in real time with the audio playback position
+
+**Analysis View** — a scientific mode for inspecting the DSP pipeline output.
+
+<!-- TODO: Screenshot of Analysis View -->
+![Analysis View](Docs/Assets/placeholder_analysis_view.png)
+
+- High-resolution spectrogram (STFT) with frequency axis labels
+- Chromagram with labeled chord segments
+- Both visualizations are clickable and open in a full-size popup window
+- Chromagram visualizes playhead of audio during playback (pause with space)
+- Configurable analysis parameters (FFT size, hop size, similarity threshold, etc.)
 
 | Full Spectogram | Full Chromagram |
 | :---: | :---: |
 | ![Spectogram](Docs/Assets/specto_cmaj_noGain.png) | ![Chromagram](Docs/Assets/chroma_cmaj_noGain.png) |
+---
+
+### Audio Engine
+
+- Record audio directly from your interface
+- Load `.wav` or `.mp3` files for analysis and playback
+- Transport controls: Play / Pause / Stop / Record
+- Waveform display (always visible across both modes)
+
+<!-- TODO: Screenshot or short video of transport bar + waveform -->
+
+---
+
+### Chord Analysis Pipeline
+
+Two algorithms are available for chromagram extraction:
+
+| | HPCP (Classical DSP) | Deep Chroma (DNN) |
+|---|---|---|
+| FFT Size | 4096 | 8192 |
+| Hop Size | 512 (~86 fps) | 4410 (10 fps) |
+| Approach | Harmonic Pitch Class Profiles (Gomez) | madmom-trained neural network via ONNX |
+| Strengths | High temporal resolution | More robust against harmonics and noise |
+
+Both feed into the same classification stage (cosine similarity against binary chord templates) and produce a timeline of chord segments.
+
+---
+
+### Guitar Fretboard Visualization
+
+- 22 frets with realistic spacing (12-TET proportional layout)
+- 6 strings with visual differentiation (plain steel vs. wound)
+- Standard fret markers (dots at 3, 5, 7, 9, 12, 15, 17, 19, 21)
+- Chord tones rendered as labeled ellipses on the correct string/fret positions
+
+<video src="Docs/Assets/instrtument-view-demo.mp4" width="720" controls></video>
 
 
-## Overall Goal & Architecture
+---
 
-Chord recognition on real-world audio signals (e.g., distorted guitars or polyphonic music) is a highly complex problem due to overtones and inharmonicity. 
+### Testing & Evaluation
 
-This tool orchestrates a complete MIR pipeline:
-1. **Audio Engine:** Real-time recording and playback via JUCE.
-2. **DSP Backend (Baseline):** 
-   - Computation of high-resolution spectrograms (STFT).
-   - Extraction of Harmonic Pitch Class Profiles (HPCP) according to E. Gomez.
-   - Filtering and smoothing (Median filter, dynamic noise gating).
-   - Classification via Cosine Similarity against binary chord templates.
-3. **Deep Chroma Learning (Future):** 
-   - Planned integration of machine learning (e.g., neural networks) to make chromagrams more robust against noise and overtones, significantly increasing overall accuracy.
-4. **Testing Module:** 
-   - A decoupled offline testing module for batch processing audio datasets and `.txt` label files (Ground Truth). 
-   - Automatic, frame-based evaluation of accuracy and export as an aggregated `JSON` file for evaluation and plotting in Python.
+A decoupled offline testing module for batch-processing audio datasets:
+
+- Compares frame-level classifications against ground truth label files
+- Exports aggregated accuracy metrics as JSON for evaluation in Python
+- Used to benchmark HPCP vs. Deep Chroma accuracy across the test corpus
+
+<!-- TODO: Example output table or chart from evaluation -->
 
 ---
 
 ## Setup & Installation
 
-This project uses **CMake** as its build system and requires the **JUCE Framework**.
-
 ### Prerequisites
-* A C++17 capable compiler (MSVC on Windows, Clang on macOS, GCC on Linux)
-* [CMake](https://cmake.org/download/) (version 3.22 or higher)
 
-### Build Instructions
+- C++17 compiler (MSVC on Windows, Clang on macOS, GCC on Linux)
+- [CMake](https://cmake.org/download/) 3.22 or higher
+- [ONNX Runtime](https://onnxruntime.ai/) (for Deep Chroma inference)
 
-1. **Clone the repository:**
-   ```bash
-   git clone git@github.com:Driemtax/ACR.git
-   cd ACR
-2. **Adjust JUCE Path:** Open the `CMakeLists.txt` and make sure the path to your local JUCE directory is set correctly: ```add_subdirectory("C:/Your/Path/To/JUCE" JUCE)```
-3. **Generate & Build:**
-  ```bash
-  mkdir build
-  cd build
-  cmake ..
-  cmake --build . --config Release
-  ```
-*Alternatively, you can open the project directly in IDEs like Visual Studio, CLion, or VS Code (with CMake Tools). The IDE will handle the configuration automatically.*
+### Build
 
-## Work in Progress (WIP)
+```bash
+git clone git@github.com:Driemtax/ACR.git
+cd ACR
+mkdir build && cd build
+cmake ..
+cmake --build . --config Release
+```
 
-As this project is part of an active Bachelor's thesis, it is constantly evolving. When the thesis is finished you can find the full text in this repository. 
-Current development focus:
-- [x] Setup of the GUI and audio recording logic
-- [x] Implementation of the STFT & HPCP baseline
-- [x] Automated accuracy tests against Sonic Visualiser labels (JSON export)
-- [ ] Integration of Deep Chroma Learning features
-- [ ] Optimization of smoothing algorithms (Temporal Smoothing / High-Res Chromagrams)
+By default, CMake will fetch JUCE 0.0.12 via FetchContent. The ONNX Runtime path is currently hardcoded in `CMakeLists.txt` since it is platform dependent - so you'll need to adjust it to match your local installation:
+```bash
+target_include_directories(ACR PRIVATE "C:/Path/To/onnxruntime/include")
+target_link_directories(ACR PRIVATE "C:/Path/To/onnxruntime/lib")
+```
+
+### Runtime Dependencies
+
+The Deep Chroma model requires the ONNX Runtime DLL to be accessible at runtime (either in PATH or next to the executable).
+
+---
+
+## Project Context
+
+This application was developed as part of a Bachelor's thesis at DHBW Mannheim. The thesis investigates whether Deep Chroma Learning (as proposed by Korzeniowski & Widmer, based on the madmom framework) yields higher chord recognition accuracy than the classical HPCP approach — specifically on audio material containing heavily distorted electric guitar.
+
+The full thesis text will be made available in this repository upon completion.
+
+## License
+TODO: Add license information here
