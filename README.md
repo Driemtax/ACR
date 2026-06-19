@@ -73,8 +73,7 @@ Both feed into the same classification stage (cosine similarity against binary c
 - Standard fret markers (dots at 3, 5, 7, 9, 12, 15, 17, 19, 21)
 - Chord tones rendered as labeled ellipses on the correct string/fret positions
 
-<video src="Docs/Assets/instrtument-view-demo.mp4" width="720" controls></video>
-
+https://github.com/user-attachments/assets/33f0dd74-2a0f-4c5f-82a2-4f8ae0a2fa25
 
 ---
 
