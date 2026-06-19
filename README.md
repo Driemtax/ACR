@@ -17,7 +17,7 @@ The application is split into two views, switchable via tabs:
 **Instrument view** — the primary mode for playing along with a track.
 
 <!-- TODO: Screenshot of Performance View -->
-![Instrument View](Docs/Assets/placeholder_performance_view.png)
+https://github.com/user-attachments/assets/33f0dd74-2a0f-4c5f-82a2-4f8ae0a2fa25
 
 - Interactive guitar fretboard displaying all chord tone positions
 - Color-coded by interval (root, third, fifth)
@@ -27,7 +27,7 @@ The application is split into two views, switchable via tabs:
 **Analysis View** — a scientific mode for inspecting the DSP pipeline output.
 
 <!-- TODO: Screenshot of Analysis View -->
-![Analysis View](Docs/Assets/placeholder_analysis_view.png)
+![Analysis View](Docs/Assets/Scientific_Tool_Analyze_Screen.png)
 
 - High-resolution spectrogram (STFT) with frequency axis labels
 - Chromagram with labeled chord segments
@@ -72,8 +72,6 @@ Both feed into the same classification stage (cosine similarity against binary c
 - 6 strings with visual differentiation (plain steel vs. wound)
 - Standard fret markers (dots at 3, 5, 7, 9, 12, 15, 17, 19, 21)
 - Chord tones rendered as labeled ellipses on the correct string/fret positions
-
-https://github.com/user-attachments/assets/33f0dd74-2a0f-4c5f-82a2-4f8ae0a2fa25
 
 ---
 
