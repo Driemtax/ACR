@@ -40,9 +40,37 @@ ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
   if (reader == nullptr)
     return result;
 
-  juce::AudioBuffer<float> buffer((int)reader->numChannels,
-                                  (int)reader->lengthInSamples);
-  reader->read(&buffer, 0, (int)reader->lengthInSamples, 0, true, true);
+  double sourceSampleRate = reader->sampleRate;
+  const double targetSampleRate = 44100.0;
+
+  juce::AudioBuffer<float> buffer;
+
+  // If the file is not at sample rate 44,1kHz we need to resample!
+  if (sourceSampleRate != targetSampleRate) {
+    double ratio = sourceSampleRate / targetSampleRate;
+
+    // calculatet sample count new buffer needs
+    int targetLength = static_cast<int>(reader->lengthInSamples / ratio);
+    buffer.setSize(reader->numChannels, targetLength);
+
+    // temp buffer for original data
+    juce::AudioBuffer<float> tempBuffer(
+        reader->numChannels, static_cast<int>(reader->lengthInSamples));
+    reader->read(&tempBuffer, 0, static_cast<int>(reader->lengthInSamples), 0,
+                 true, true);
+
+    // JUCE Interpolator for resampling every channel
+    for (int ch = 0; ch < reader->numChannels; ch++) {
+      juce::WindowedSincInterpolator interpolator;
+      interpolator.process(ratio, tempBuffer.getReadPointer(ch),
+                           buffer.getWritePointer(ch), targetLength);
+    }
+  } else {
+    buffer.setSize(reader->numChannels,
+                   static_cast<int>(reader->lengthInSamples));
+    reader->read(&buffer, 0, static_cast<int>(reader->lengthInSamples), 0, true,
+                 true);
+  }
 
   // 2. Create Spectogram
   auto spectogramData = spectoAnalyzer.processFullFile(buffer);
