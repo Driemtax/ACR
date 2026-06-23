@@ -9,19 +9,19 @@
 
 void Test::runAllTests() const {
   // 1. TestCase: HPCP base with no median Filter
-  juce::String testName = "HPCP_base_noMedian";
+  juce::String testName = "HPCP_noGain_noMedian";
   AnalyzerConfig config = AnalyzerConfig();
   config.medianFilter = false;
   runTests(config, const_cast<juce::String &>(testName), true);
 
   // 2. TestCase: HPCP base with median Filter Window Size = 5
-  testName = "HPCP_base_median5";
+  testName = "HPCP_noGain_median19";
   config.medianFilter = true;
-  config.medianWindowSize = 5;
+  config.medianWindowSize = 19;
   runTests(config, const_cast<juce::String &>(testName), true);
 
   // 3. TestCase: Use ML modell of madmom
-  testName = "DeepChroma_base";
+  testName = "DeepChroma_noGain";
   config.setToDeepLearningDefaults();
   runTests(config, const_cast<juce::String &>(testName), true);
 
@@ -31,7 +31,9 @@ void Test::runAllTests() const {
 
 void Test::findMaxima() const {
   // findMaximaMedianWindowSize();
-  findMaximaFloatParameters();
+  // findMaximaFloatParameters();
+
+  findMaximaThresholdDeepLearning();
 }
 
 void Test::findMaximaMedianWindowSize() const {
@@ -61,6 +63,60 @@ void Test::findMaximaMedianWindowSize() const {
 
   std::cout << "Highest Accuracy: " << highestAccuracy * 100.0f
             << " with Median Window Size: " << bestWindowSize << std::endl;
+}
+
+void Test::findMaximaThresholdDeepLearning() const {
+  AnalyzerConfig config;
+  config.setToDeepLearningDefaults();
+
+  const juce::String testfileName = "ThresholdMaximumDeepLearning";
+
+  float bestThreshold = 0.0f;
+  float bestAccuracy = -1.0f;
+  float thresholdMin = 0.1f;
+  float thresholdMax = 0.9f;
+  float thresholdStep = 0.1f;
+
+  std::cout << "=== STARTE GROBE RASTERSUCHE ===" << std::endl;
+
+  for (float t = thresholdMin; t < thresholdMax + 0.0001f; t += thresholdStep) {
+    config.similarityThreshold = t;
+
+    float currentAccuracy =
+        runTests(config, testfileName + "_deepT_" + std::to_string(t), false);
+
+    std::cout << "Test t=" << t << " -> Accuracy: " << currentAccuracy * 100.0f
+              << "%" << std::endl;
+
+    if (currentAccuracy > bestAccuracy) {
+      bestAccuracy = currentAccuracy;
+      bestThreshold = t;
+    }
+  }
+
+  std::cout << "Grobes Maximum gefunden bei t = " << bestThreshold
+            << " (Accuracy: " << bestAccuracy << "%)" << std::endl;
+  std::cout << "\n=== STARTE FEINE RASTERSUCHE ===" << std::endl;
+  thresholdMin = std::max(0.0f, bestThreshold - thresholdStep);
+  thresholdMax = std::min(1.0f, bestThreshold + thresholdStep);
+
+  thresholdStep = 0.02f;
+
+  for (float t = thresholdMin; t <= thresholdMax + 0.0001f;
+       t += thresholdStep) {
+    config.similarityThreshold = t;
+
+    float currentAccuracy =
+        runTests(config, testfileName + "_deepT_" + std::to_string(t), false);
+
+    std::cout << "Test t=" << t << " -> Accuracy: " << currentAccuracy * 100.0f
+              << "%" << std::endl;
+
+    if (currentAccuracy > bestAccuracy) {
+      bestAccuracy = currentAccuracy;
+      bestThreshold = t;
+    }
+  }
 }
 
 void Test::findMaximaFloatParameters() const {
@@ -101,6 +157,11 @@ void Test::findMaximaFloatParameters() const {
         bestS = s;
         bestThreshold = t;
       }
+
+      std::cout << "\n=== OPTIMIERUNG ABGESCHLOSSEN ===" << std::endl;
+      std::cout << "Beste Parameter:" << std::endl;
+      std::cout << "similarityThreshold = " << bestThreshold << std::endl;
+      std::cout << "Finale Accuracy = " << bestAccuracy << "%" << std::endl;
     }
   }
 

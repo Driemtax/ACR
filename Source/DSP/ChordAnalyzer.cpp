@@ -92,7 +92,7 @@ ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
         std::make_unique<DeepChromaExtractor>(chromaRes * chromaSize);
   } else {
     chromaProcessor = std::make_unique<ChromaAnalyzer>(
-        static_cast<float>(reader->sampleRate), static_cast<float>(fftSize), s,
+        static_cast<float>(targetSampleRate), static_cast<float>(fftSize), s,
         chromaRes, medianWindowSize, medianFilter, tuningShift);
   }
 

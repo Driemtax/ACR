@@ -76,7 +76,8 @@ FretboardMapper::getIntervalsForQuality(const juce::String &quality) {
  * the chord.
  */
 std::vector<GuitarView::FretLabel>
-FretboardMapper::getLabelsForChord(const juce::String &chordName, int maxFret) {
+FretboardMapper::getLabelsForChord(const juce::String &chordName,
+                                   const juce::Colour &colour, int maxFret) {
   std::vector<GuitarView::FretLabel> labels;
   std::string stdChordName = chordName.toStdString();
 
@@ -116,9 +117,8 @@ FretboardMapper::getLabelsForChord(const juce::String &chordName, int maxFret) {
 
     for (int s = 0; s < 6; s++) {
       for (int fret : noteAppearances[s]) {
-        GuitarView::FretLabel label = {s + 1, fret,
-                                       getNoteName(getNoteAt(s + 1, fret)),
-                                       juce::Colours::green};
+        GuitarView::FretLabel label = {
+            s + 1, fret, getNoteName(getNoteAt(s + 1, fret)), colour};
         labels.push_back(label);
       }
     }

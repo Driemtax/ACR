@@ -48,6 +48,7 @@ private:
 
   void findMaximaMedianWindowSize() const;
   void findMaximaFloatParameters() const;
+  void findMaximaThresholdDeepLearning() const;
 
   std::vector<GroundTruthLabel>
   parseGroundTruth(const juce::File &labelFile) const;

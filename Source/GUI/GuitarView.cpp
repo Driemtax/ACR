@@ -3,10 +3,13 @@
 #include "juce_graphics/juce_graphics.h"
 #include "juce_gui_basics/juce_gui_basics.h"
 #include <cmath>
+#include <map>
+#include <set>
+#include <utility>
 #include <vector>
 
 GuitarView::GuitarView(AudioEngine &engine) : audioEngine(engine) {
-  setLabels({
+  setCurrentLabels({
       {1, 0, "E", juce::Colours::steelblue},
       {2, 0, "B", juce::Colours::steelblue},
       {3, 0, "G", juce::Colours::steelblue},
@@ -16,13 +19,19 @@ GuitarView::GuitarView(AudioEngine &engine) : audioEngine(engine) {
   });
 }
 
-void GuitarView::setLabels(const std::vector<FretLabel> &labels) {
-  activeLabels = labels;
+void GuitarView::setCurrentLabels(const std::vector<FretLabel> &labels) {
+  currentLabels = labels;
+  repaint();
+}
+
+void GuitarView::setNextLabels(const std::vector<FretLabel> &labels) {
+  nextLabels = labels;
   repaint();
 }
 
 void GuitarView::clearLabels() {
-  activeLabels.clear();
+  currentLabels.clear();
+  nextLabels.clear();
   repaint();
 }
 
@@ -79,7 +88,7 @@ void GuitarView::paint(juce::Graphics &g) {
   drawNut(g);
   drawStrings(g);
   drawFretNumbers(g);
-  drawLabels(g);
+  drawAllLabels(g);
 }
 
 void GuitarView::resized() {}
@@ -182,8 +191,131 @@ void GuitarView::drawFretNumbers(juce::Graphics &g) {
   }
 }
 
-void GuitarView::drawLabels(juce::Graphics &g) {
-  for (const auto &label : activeLabels) {
+void GuitarView::drawAllLabels(juce::Graphics &g) {
+  // Build a lookup of next-label positions for fast overlap detection
+  std::map<std::pair<int, int>, const FretLabel *> nextMap;
+
+  for (const auto &label : nextLabels) {
+    nextMap[{label.string, label.fret}] = &label;
+  }
+
+  // Identify overlapping positions
+  std::set<std::pair<int, int>> overlaps;
+  for (const auto &cl : currentLabels) {
+    if (nextMap.count({cl.string, cl.fret})) {
+      overlaps.insert({cl.string, cl.fret});
+    }
+  }
+
+  // 1. Draw non-overlapping labels
+  for (const auto &label : nextLabels) {
+    if (overlaps.count({label.string, label.fret}) == 0) {
+      drawSingleLabel(g, label);
+    }
+  }
+
+  // 2. Draw non-overlapping current labels
+  for (const auto &label : currentLabels) {
+    if (overlaps.count({label.string, label.fret}) == 0) {
+      drawSingleLabel(g, label);
+    }
+  }
+
+  // 3. Draw overlapping labels as split ellipses
+  for (const auto &cl : currentLabels) {
+    auto it = nextMap.find({cl.string, cl.fret});
+    if (it != nextMap.end()) {
+      drawSplitLabel(g, cl, *it->second);
+    }
+  }
+}
+
+juce::Rectangle<float>
+GuitarView::getLabelBounds(const FretLabel &label) const {
+  float y = getStringY(label.string);
+  float x;
+
+  if (label.fret == 0) {
+    x = getFretX(0) - 18.0f;
+  } else {
+    x = (getFretX(label.fret - 1) + getFretX(label.fret)) / 2.0f;
+  }
+
+  float fretWidth = (label.fret > 0)
+                        ? getFretX(label.fret) - getFretX(label.fret - 1)
+                        : 30.0f;
+
+  float labelW = juce::jlimit(18.0f, 45.0f, fretWidth * 0.7f);
+  float labelH = labelW * 0.75f;
+
+  return {x - labelW / 2.0f, y - labelH / 2.0f, labelW, labelH};
+}
+
+void GuitarView::drawSingleLabel(juce::Graphics &g, const FretLabel &label) {
+  if (label.string < 1 || label.string > numStrings)
+    return;
+  if (label.fret < 0 || label.fret > numFrets)
+    return;
+
+  auto bounds = getLabelBounds(label);
+
+  // Filled ellipse
+  g.setColour(label.colour);
+  g.fillEllipse(bounds);
+
+  // Borders
+  g.setColour(label.colour.brighter(0.3f));
+  g.drawEllipse(bounds, 1.5f);
+
+  // Text
+  g.setColour(juce::Colours::white);
+  g.setFont(juce::jlimit(9.0f, 12.0f, bounds.getWidth() * 0.5f));
+  g.drawText(label.text, bounds.toNearestInt(), juce::Justification::centred,
+             false);
+}
+
+void GuitarView::drawSplitLabel(juce::Graphics &g, const FretLabel &current,
+                                const FretLabel &next) {
+  auto bounds = getLabelBounds(current);
+  float midX = bounds.getCentreX();
+
+  // Left half: current chord colour
+  g.saveState();
+  g.reduceClipRegion(static_cast<int>(bounds.getX()),
+                     static_cast<int>(bounds.getY()),
+                     static_cast<int>(midX - bounds.getX()),
+                     static_cast<int>(bounds.getHeight()) + 1);
+  g.setColour(current.colour);
+  g.fillEllipse(bounds);
+  g.restoreState();
+
+  // Right half: next chord colour
+  g.saveState();
+  g.reduceClipRegion(static_cast<int>(midX), static_cast<int>(bounds.getY()),
+                     static_cast<int>(bounds.getRight() - midX) + 1,
+                     static_cast<int>(bounds.getHeight() + 1));
+  g.setColour(next.colour);
+  g.fillEllipse(bounds);
+  g.restoreState();
+
+  // Border
+  g.setColour(juce::Colours::white.withAlpha(0.7f));
+  g.drawEllipse(bounds, 1.5f);
+
+  // Center divider line
+  g.setColour(juce::Colours::white.withAlpha(0.4f));
+  g.drawLine(midX, bounds.getY() + 2.0f, midX, bounds.getBottom() - 2.0f, 1.0f);
+
+  // Text
+  g.setColour(juce::Colours::white);
+  g.setFont(juce::jlimit(9.0f, 12.0f, bounds.getWidth() + 0.5f));
+  g.drawText(current.text, bounds.toNearestInt(), juce::Justification::centred,
+             false);
+}
+
+void GuitarView::drawLabels(juce::Graphics &g,
+                            const std::vector<FretLabel> &labels) {
+  for (const auto &label : labels) {
     if (label.string < 1 || label.string > numStrings)
       continue;
 

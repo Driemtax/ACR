@@ -99,8 +99,9 @@ void InstrumentComponent::updateUIForSegment(int segmentIndex) {
 
   // Map chord to guitar labels
   if (currentChord.isNotEmpty() && currentChord != "N") {
-    auto labels = FretboardMapper::getLabelsForChord(currentChord, 22);
-    guitarView.setLabels(labels);
+    auto labels = FretboardMapper::getLabelsForChord(currentChord,
+                                                     juce::Colours::green, 22);
+    guitarView.setCurrentLabels(labels);
   } else {
     guitarView.clearLabels();
     chordInfoPanel.setCurrentChord("");
@@ -114,6 +115,10 @@ void InstrumentComponent::updateUIForSegment(int segmentIndex) {
       break;
     }
   }
+
+  auto nextLabels =
+      FretboardMapper::getLabelsForChord(nextChord, juce::Colours::orange, 22);
+  guitarView.setNextLabels(nextLabels);
   chordInfoPanel.setNextChord(nextChord);
 }
 

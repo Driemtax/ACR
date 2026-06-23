@@ -97,11 +97,7 @@ void ChromaAnalyzer::processFrame(const float *currentFrame, int frameNum,
       squaredMag = p.magnitude * p.magnitude;
       // Iterate over 8 harmonics
       for (int h = 0; h < 8; h++) {
-        dist = calculateDistance(
-            p.frequency / h + 1,
-            binMids[n]); // brauche ich hier Klammer um h+1? Best Practice auf
-                         // jeden Fall Klammer setzen damit es beim lesen klar
-                         // wird.
+        dist = calculateDistance(p.frequency / (h + 1), binMids[n]);
         freqWeight = calculateWeightFreq(dist);
         harmonicWeight = harmonicWeights[h];
 

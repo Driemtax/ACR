@@ -19,7 +19,8 @@ public:
 
   GuitarView(AudioEngine &engine);
 
-  void setLabels(const std::vector<FretLabel> &labels);
+  void setCurrentLabels(const std::vector<FretLabel> &labels);
+  void setNextLabels(const std::vector<FretLabel> &labels);
   void clearLabels();
 
   void paint(juce::Graphics &g) override;
@@ -27,7 +28,8 @@ public:
 
 private:
   AudioEngine &audioEngine;
-  std::vector<FretLabel> activeLabels;
+  std::vector<FretLabel> currentLabels;
+  std::vector<FretLabel> nextLabels;
 
   static constexpr int numStrings = 6;
   static constexpr int numFrets = 22;
@@ -44,7 +46,14 @@ private:
   void drawNut(juce::Graphics &g);
   void drawStrings(juce::Graphics &g);
   void drawFretNumbers(juce::Graphics &g);
-  void drawLabels(juce::Graphics &g);
+  void drawAllLabels(juce::Graphics &g);
+  void drawLabels(juce::Graphics &g, const std::vector<FretLabel> &labels);
+
+  // Label Helper
+  juce::Rectangle<float> getLabelBounds(const FretLabel &label) const;
+  void drawSingleLabel(juce::Graphics &g, const FretLabel &label);
+  void drawSplitLabel(juce::Graphics &g, const FretLabel &current,
+                      const FretLabel &next);
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GuitarView)
 };

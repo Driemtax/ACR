@@ -24,7 +24,7 @@ struct AnalyzerConfig {
   bool medianFilter = true;
   int medianWindowSize = 19;
   float s = 0.6f;
-  bool tuningShift = true;
+  bool tuningShift = false;
 
   // 4. Classification
   float similarityThreshold = 0.3f;

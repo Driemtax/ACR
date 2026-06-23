@@ -2,6 +2,7 @@
 
 #include "../GUI/GuitarView.h"
 #include "juce_core/juce_core.h"
+#include "juce_graphics/juce_graphics.h"
 #include <JuceHeader.h>
 #include <vector>
 
@@ -9,7 +10,8 @@
 class FretboardMapper {
 public:
   static std::vector<GuitarView::FretLabel>
-  getLabelsForChord(const juce::String &chordName, int maxFret = 22);
+  getLabelsForChord(const juce::String &chordName, const juce::Colour &colour,
+                    int maxFret = 22);
 
   static int getNoteAt(int string, int fret);
   static const char *getNoteName(int noteIndex);

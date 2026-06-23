@@ -57,6 +57,7 @@ ScienceView::ScienceView(AudioEngine &engine, AnalyzerConfig &cfg)
 
     std::thread([this]() {
       Test tester;
+      // tester.runAllTests();
       tester.findMaxima();
 
       juce::MessageManager::callAsync([this]() {
