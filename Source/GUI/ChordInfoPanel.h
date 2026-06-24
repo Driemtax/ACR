@@ -1,10 +1,13 @@
 #pragma once
 
+#include "ScaleSelector.h"
 #include <JuceHeader.h>
 
 class ChordInfoPanel : public juce::Component {
 public:
   ChordInfoPanel();
+
+  ScaleSelector &getScaleSelector() { return scaleSelector; }
 
   void setCurrentChord(const juce::String &name);
   void setNextChord(const juce::String &name);
@@ -16,6 +19,7 @@ public:
 private:
   juce::String currentChordName;
   juce::String nextChordName;
+  ScaleSelector scaleSelector;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChordInfoPanel)
 };

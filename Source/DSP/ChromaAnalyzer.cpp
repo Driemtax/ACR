@@ -366,7 +366,6 @@ void ChromaAnalyzer::scaleChroma(juce::AudioBuffer<float> &chroma) const {
   int numFrames = chroma.getNumChannels();
   int numBins = chroma.getNumSamples();
 
-  std::cout << "Num Bins: " << numBins << std::endl;
   // If there are only 12 bins no scaling needs to be applied.
   if (numBins == 12) {
     return;
@@ -398,7 +397,6 @@ void ChromaAnalyzer::scaleChroma(juce::AudioBuffer<float> &chroma) const {
     offset = bestShift - resolution;
   }
 
-  std::cout << "Offset: " << offset << std::endl;
   // 3. Compress High res chroma to 12 bins
   juce::AudioBuffer<float> finalChroma(numFrames, 12);
 

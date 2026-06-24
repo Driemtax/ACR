@@ -29,9 +29,19 @@ void GuitarView::setNextLabels(const std::vector<FretLabel> &labels) {
   repaint();
 }
 
+void GuitarView::setScaleLabels(const std::vector<FretLabel> &labels) {
+  scaleLabels = labels;
+  repaint();
+}
+
 void GuitarView::clearLabels() {
   currentLabels.clear();
   nextLabels.clear();
+  repaint();
+}
+
+void GuitarView::clearScaleLabels() {
+  scaleLabels.clear();
   repaint();
 }
 
@@ -192,6 +202,10 @@ void GuitarView::drawFretNumbers(juce::Graphics &g) {
 }
 
 void GuitarView::drawAllLabels(juce::Graphics &g) {
+  // Draw all scale labels. As those are the first layer they get overrided by
+  // chord tones, no logic needed.
+  drawLabels(g, scaleLabels);
+
   // Build a lookup of next-label positions for fast overlap detection
   std::map<std::pair<int, int>, const FretLabel *> nextMap;
 

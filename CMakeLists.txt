@@ -73,6 +73,8 @@ target_sources(ACR PRIVATE
     Source/GUI/ChromaDisplay.cpp
     Source/GUI/ConfigPopup.h
     Source/GUI/ConfigPopup.cpp
+    Source/GUI/ScaleSelector.h
+    Source/GUI/ScaleSelector.cpp
     Source/DSP/SpectogramAnalyzer.h
     Source/DSP/SpectogramAnalyzer.cpp
     Source/DSP/ChromaAnalyzer.h
@@ -89,6 +91,8 @@ target_sources(ACR PRIVATE
     Source/ML/FilterbankWeights.h
     Source/Util/FretboardMapper.h
     Source/Util/FretboardMapper.cpp
+    Source/Util/ScaleDatabase.h
+    Source/Util/ScaleDatabase.cpp
 )
 
 # ==============================================================================

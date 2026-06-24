@@ -4,6 +4,7 @@
 #include "../DSP/Classificator.h"
 #include "ChordInfoPanel.h"
 #include "GuitarView.h"
+#include "ScaleSelector.h"
 #include "juce_core/system/juce_PlatformDefs.h"
 #include "juce_events/juce_events.h"
 #include "juce_graphics/juce_graphics.h"
@@ -32,6 +33,7 @@ private:
   ChordInfoPanel chordInfoPanel;
 
   std::vector<Classificator::ChordSegment> timeline;
+  std::vector<GuitarView::FretLabel> activeScaleLabels;
   double analysisSampleRate = 44100.0;
   int analysisHopSize = 512;
 

@@ -21,7 +21,9 @@ public:
 
   void setCurrentLabels(const std::vector<FretLabel> &labels);
   void setNextLabels(const std::vector<FretLabel> &labels);
+  void setScaleLabels(const std::vector<FretLabel> &labels);
   void clearLabels();
+  void clearScaleLabels();
 
   void paint(juce::Graphics &g) override;
   void resized() override;
@@ -30,6 +32,7 @@ private:
   AudioEngine &audioEngine;
   std::vector<FretLabel> currentLabels;
   std::vector<FretLabel> nextLabels;
+  std::vector<FretLabel> scaleLabels;
 
   static constexpr int numStrings = 6;
   static constexpr int numFrets = 22;

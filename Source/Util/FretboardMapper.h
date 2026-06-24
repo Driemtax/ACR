@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../GUI/GuitarView.h"
+#include "ScaleDatabase.h"
 #include "juce_core/juce_core.h"
 #include "juce_graphics/juce_graphics.h"
 #include <JuceHeader.h>
@@ -12,6 +13,10 @@ public:
   static std::vector<GuitarView::FretLabel>
   getLabelsForChord(const juce::String &chordName, const juce::Colour &colour,
                     int maxFret = 22);
+
+  static std::vector<GuitarView::FretLabel>
+  getLabelsForScale(int rootNote, ScaleDatabase::ScaleType scaleType,
+                    const juce::Colour &colour, int maxFret = 22);
 
   static int getNoteAt(int string, int fret);
   static const char *getNoteName(int noteIndex);

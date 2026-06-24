@@ -11,6 +11,23 @@ InstrumentComponent::InstrumentComponent(AudioEngine &engine)
 
   chordInfoPanel.clearChords();
 
+  // callback for ScaleSelector to call if user changes selected scale
+  chordInfoPanel.getScaleSelector().onScaleChanged =
+      [this](int root, ScaleDatabase::ScaleType type) {
+        activeScaleLabels = FretboardMapper::getLabelsForScale(
+            root, type, juce::Colours::steelblue);
+
+        auto state = audioEngine.getState();
+        if (state == AudioEngine::TransportState::Playing ||
+            state == AudioEngine::TransportState::Paused) {
+          guitarView.setScaleLabels(activeScaleLabels);
+        }
+      };
+
+  // Initialize A Minor Pentatonic
+  // chordInfoPanel.getScaleSelector().onScaleChanged(
+  //    9, ScaleDatabase::ScaleType::MinorPantatonic);
+
   //  start timer to check playback position
   startTimerHz(30);
 }
@@ -46,6 +63,7 @@ void InstrumentComponent::timerCallback() {
       currentSegmentIndex = -1;
       chordInfoPanel.clearChords();
       guitarView.clearLabels();
+      guitarView.clearScaleLabels();
     }
 
     return;
@@ -81,8 +99,14 @@ void InstrumentComponent::timerCallback() {
 
   // if segment changed, update the UI
   if (foundSegmentIndex != currentSegmentIndex) {
+    bool wasStopped = (currentSegmentIndex == -1);
+
     currentSegmentIndex = foundSegmentIndex;
     updateUIForSegment(currentSegmentIndex);
+
+    if (wasStopped) {
+      guitarView.setScaleLabels(activeScaleLabels);
+    }
   }
 }
 
@@ -120,6 +144,8 @@ void InstrumentComponent::updateUIForSegment(int segmentIndex) {
       FretboardMapper::getLabelsForChord(nextChord, juce::Colours::orange, 22);
   guitarView.setNextLabels(nextLabels);
   chordInfoPanel.setNextChord(nextChord);
+
+  // TODO: get current Scale and set it as active? Dont need this every frame
 }
 
 void InstrumentComponent::paint(juce::Graphics &g) {

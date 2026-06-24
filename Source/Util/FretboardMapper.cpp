@@ -1,4 +1,5 @@
 #include "FretboardMapper.h"
+#include "ScaleDatabase.h"
 #include "juce_core/juce_core.h"
 #include "juce_graphics/juce_graphics.h"
 #include <algorithm>
@@ -120,6 +121,33 @@ FretboardMapper::getLabelsForChord(const juce::String &chordName,
         GuitarView::FretLabel label = {
             s + 1, fret, getNoteName(getNoteAt(s + 1, fret)), colour};
         labels.push_back(label);
+      }
+    }
+  }
+
+  return labels;
+}
+
+std::vector<GuitarView::FretLabel>
+FretboardMapper::getLabelsForScale(int rootNote,
+                                   ScaleDatabase::ScaleType scaleType,
+                                   const juce::Colour &colour, int maxFret) {
+  std::vector<GuitarView::FretLabel> labels;
+  std::vector<int> notes = ScaleDatabase::getScaleNotes(rootNote, scaleType);
+
+  for (int note : notes) {
+    std::vector<std::vector<int>> noteAppearances =
+        getEveryNoteAppearance(note);
+    bool isRoot = (note == rootNote);
+    // juce::Colour c = isRoot ? rootColour : colour;
+
+    for (int s = 0; s < 6; s++) {
+      for (int fret : noteAppearances[s]) {
+        if (fret <= maxFret) {
+          GuitarView::FretLabel label = {s + 1, fret, getNoteName(note),
+                                         colour};
+          labels.push_back(label);
+        }
       }
     }
   }

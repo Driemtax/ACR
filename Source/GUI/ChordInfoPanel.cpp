@@ -1,6 +1,6 @@
 #include "ChordInfoPanel.h"
 
-ChordInfoPanel::ChordInfoPanel() {}
+ChordInfoPanel::ChordInfoPanel() { addAndMakeVisible(scaleSelector); }
 
 void ChordInfoPanel::setCurrentChord(const juce::String &name) {
   currentChordName = name;
@@ -28,7 +28,8 @@ void ChordInfoPanel::paint(juce::Graphics &g) {
   g.setColour(juce::Colours::white.withAlpha(0.1f));
   g.drawLine(0.0f, 0.0f, static_cast<float>(getWidth()), 0.0f, 1.0f);
 
-  // Split into left (current) and right (next)
+  // split into space for scale selector and the two panels
+  area.removeFromLeft(300);
   auto leftHalf = area.removeFromLeft(area.getWidth() / 2).reduced(10);
   auto rightHalf = area.reduced(10);
 
@@ -65,4 +66,12 @@ void ChordInfoPanel::paint(juce::Graphics &g) {
   }
 }
 
-void ChordInfoPanel::resized() {}
+void ChordInfoPanel::resized() {
+  auto area = getLocalBounds();
+
+  // space for ScaleSelector component
+  auto scaleArea = area.removeFromRight(300).reduced(10);
+
+  scaleSelector.setBounds(
+      scaleArea.withSizeKeepingCentre(scaleArea.getWidth(), 30));
+}
