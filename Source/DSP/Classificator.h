@@ -28,7 +28,7 @@ public:
   // groups frame classifications for visualisation
   std::vector<ChordSegment>
   getGroupedSegments(const std::vector<int> &frameResults,
-                     int minSegmentLength = 5) const;
+                     int minSegmentLength = 10) const;
 
 private:
   // Takes a 12-dimensional vector as an input and returns the index of the

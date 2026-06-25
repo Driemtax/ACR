@@ -117,6 +117,11 @@ void Test::findMaximaThresholdDeepLearning() const {
       bestThreshold = t;
     }
   }
+
+  std::cout << "\n=== OPTIMIERUNG ABGESCHLOSSEN ===" << std::endl;
+  std::cout << "Beste Parameter:" << std::endl;
+  std::cout << "similarityThreshold = " << bestThreshold << std::endl;
+  std::cout << "Finale Accuracy = " << bestAccuracy << "%" << std::endl;
 }
 
 void Test::findMaximaFloatParameters() const {

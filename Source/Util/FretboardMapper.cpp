@@ -6,6 +6,24 @@
 #include <regex>
 #include <vector>
 
+template <typename T>
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
+  os << "[";
+  for (size_t i = 0; i < v.size(); ++i) {
+    os << "<";
+    os << v[i].string;
+    os << ", ";
+    os << v[i].fret;
+    os << ", ";
+    os << v[i].text;
+    os << ">";
+    if (i != v.size() - 1)
+      os << ", ";
+  }
+  os << "]";
+  return os;
+}
+
 static const char *noteNames[12] = {"C",  "C#", "D",  "D#", "E",  "F",
                                     "F#", "G",  "G#", "A",  "A#", "B"};
 
@@ -124,6 +142,8 @@ FretboardMapper::getLabelsForChord(const juce::String &chordName,
       }
     }
   }
+
+  // std::cout << "Labels: " << labels << std::endl;
 
   return labels;
 }

@@ -4,6 +4,24 @@
 #include "juce_graphics/juce_graphics.h"
 #include <vector>
 
+template <typename T>
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &v) {
+  os << "[";
+  for (size_t i = 0; i < v.size(); ++i) {
+    os << "<";
+    os << v[i].string;
+    os << ", ";
+    os << v[i].fret;
+    os << ", ";
+    os << v[i].text;
+    os << ">";
+    if (i != v.size() - 1)
+      os << ", ";
+  }
+  os << "]";
+  return os;
+}
+
 InstrumentComponent::InstrumentComponent(AudioEngine &engine)
     : audioEngine(engine), guitarView(engine) {
   addAndMakeVisible(guitarView);
@@ -140,8 +158,12 @@ void InstrumentComponent::updateUIForSegment(int segmentIndex) {
     }
   }
 
+  static const juce::Colour paleOrange =
+      juce::Colours::orange.interpolatedWith(juce::Colours::steelblue, 0.4f);
+
   auto nextLabels =
-      FretboardMapper::getLabelsForChord(nextChord, juce::Colours::orange, 22);
+      FretboardMapper::getLabelsForChord(nextChord, paleOrange, 22);
+
   guitarView.setNextLabels(nextLabels);
   chordInfoPanel.setNextChord(nextChord);
 

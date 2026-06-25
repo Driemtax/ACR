@@ -39,7 +39,7 @@ struct AnalyzerConfig {
     centerOriginPadding = true; // madmom uses cetner-origin framing
     convertToDecibel = false;   // madmom uses linear scaled fft magnitudes
 
-    similarityThreshold = 0.8f; // ML Vectors seem to work better with a higher
+    similarityThreshold = 0.7f; // ML Vectors seem to work better with a higher
                                 // similarityThreshold!
   }
 
