@@ -14,6 +14,8 @@ public:
   std::function<void(int rootNote, ScaleDatabase::ScaleType type)>
       onScaleChanged;
 
+  void setScale(int rootNote, ScaleDatabase::ScaleType type);
+
 private:
   juce::ComboBox keySelector;
   juce::ComboBox scaleTypeSelector;

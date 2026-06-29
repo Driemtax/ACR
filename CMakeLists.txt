@@ -84,6 +84,8 @@ target_sources(ACR PRIVATE
     Source/DSP/ChordAnalyzer.h
     Source/DSP/ChordAnalyzer.cpp
     Source/DSP/ChromaExtractorInterface.h
+    Source/DSP/KeyEstimator.h
+    Source/DSP/KeyEstimator.cpp
     Source/TestSetup/Test.h
     Source/TestSetup/Test.cpp
     Source/ML/DeepChromaExtractor.h

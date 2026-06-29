@@ -5,10 +5,12 @@
 #include "ChromaAnalyzer.h"
 #include "ChromaExtractorInterface.h"
 #include "Classificator.h"
+#include "KeyEstimator.h"
 #include "SpectogramAnalyzer.h"
 #include "juce_audio_basics/juce_audio_basics.h"
 #include <JuceHeader.h>
 #include <memory>
+#include <optional>
 #include <vector>
 
 class ChordAnalyzer {
@@ -23,6 +25,8 @@ public:
     std::vector<int> rawClassifications;
     double sampleRate;
     int hopSize;
+
+    std::optional<KeyEstimator::Key> estimatedKey;
   };
 
   AnalysisResult runAnalysis(const juce::File &audioFile);
@@ -30,6 +34,7 @@ public:
 private:
   SpectogramAnalyzer spectoAnalyzer;
   Classificator classifier;
+  KeyEstimator keyEstimator;
 
   double sampleRate = 44100.0;
   int fftOrder = 12;
@@ -47,6 +52,8 @@ private:
   // Deep Chroma Extractor
   bool useDeepLearning = false;
   std::unique_ptr<ChromaExtractorInterface> chromaProcessor;
+
+  bool useKeyEstimator = false;
 
   // Extraction for verification
   void exportBufferToJson(const juce::AudioBuffer<float> &buffer,

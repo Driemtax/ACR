@@ -47,6 +47,10 @@ private:
 
   juce::ToggleButton TuningShiftToggle{"Enable Tuning Shift"};
 
+  juce::ToggleButton keyEstimationToggle{"Enable Key Estimation"};
+  juce::Label profileLabel{{}, "Profile Type:"};
+  juce::ComboBox profileSelector;
+
   juce::TextButton saveButton{"Save Settings"};
 
   void setDeepLearning();

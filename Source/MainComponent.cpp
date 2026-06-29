@@ -1,6 +1,7 @@
 #include "MainComponent.h"
 #include "Audio/AudioEngine.h"
 #include "DSP/Classificator.h"
+#include "Util/ScaleDatabase.h"
 #include "juce_audio_utils/juce_audio_utils.h"
 #include <memory>
 #include <vector>
@@ -114,8 +115,11 @@ MainComponent::MainComponent() {
   // Callback for analysis results
   scienceView.onAnalysisCompletion =
       [this](const std::vector<Classificator::ChordSegment> &segments,
-             double sampleRate, int hopSize) {
+             double sampleRate, int hopSize, int rootNote,
+             ScaleDatabase::ScaleType type) {
         instrumentView.setTimeline(segments, sampleRate, hopSize);
+        instrumentView.getChordInfoPanel().getScaleSelector().setScale(rootNote,
+                                                                       type);
       };
 
   // Initial state

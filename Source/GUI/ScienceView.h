@@ -4,6 +4,7 @@
 #include "../DSP/AnalyzerConfig.h"
 #include "../DSP/ChordAnalyzer.h"
 #include "../DSP/Classificator.h"
+#include "../Util/ScaleDatabase.h"
 #include "ChromaDisplay.h"
 #include "SpectogramDisplay.h"
 #include <JuceHeader.h>
@@ -16,7 +17,7 @@ public:
   ScienceView(AudioEngine &engine, AnalyzerConfig &config);
 
   std::function<void(const std::vector<Classificator::ChordSegment> &, double,
-                     int)>
+                     int, int, ScaleDatabase::ScaleType &)>
       onAnalysisCompletion;
 
   void resized() override;

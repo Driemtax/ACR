@@ -2,6 +2,7 @@
 #include "AnalyzerConfig.h"
 #include "ChromaAnalyzer.h"
 #include "Classificator.h"
+#include "KeyEstimator.h"
 #include "SpectogramAnalyzer.h"
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_audio_formats/juce_audio_formats.h"
@@ -15,7 +16,8 @@ ChordAnalyzer::ChordAnalyzer(AnalyzerConfig &config)
       medianWindowSize(config.medianWindowSize), s(config.s),
       similarityThreshold(config.similarityThreshold),
       chromaRes(config.chromaRes), useDeepLearning(config.useDeepLearning),
-      tuningShift(config.tuningShift) {}
+      tuningShift(config.tuningShift), useKeyEstimator(config.useKeyEstimator),
+      keyEstimator(config.profileType) {}
 
 /**
  * Runs the complete chord analysis process on a given audio file.
@@ -101,6 +103,14 @@ ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
 
   auto chromagram = juce::AudioBuffer<float>(numFrames, chromaBins);
   chromaProcessor->extractChroma(spectogramData, chromagram);
+
+  // Key estimation
+  result.estimatedKey = keyEstimator.estimateKey(chromagram);
+
+  // smooth chroma with key profile
+  if (useKeyEstimator && result.estimatedKey.has_value()) {
+    keyEstimator.applyKeyWeights(chromagram, result.estimatedKey.value());
+  }
 
   // classify
   std::vector<int> classifiedFrames;

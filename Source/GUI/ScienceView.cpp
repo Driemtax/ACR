@@ -58,7 +58,7 @@ ScienceView::ScienceView(AudioEngine &engine, AnalyzerConfig &cfg)
     std::thread([this]() {
       Test tester;
       // tester.runAllTests();
-      tester.findMaxima();
+      tester.keyEstimatorTest();
 
       juce::MessageManager::callAsync([this]() {
         loadingText.setText("Tests Finished!", juce::dontSendNotification);
@@ -110,13 +110,18 @@ void ScienceView::runAnalysisOffline() {
   auto segmentsCopy = result.chordSegments;
   double sampleRate = result.sampleRate;
   int hopSize = result.hopSize;
+  int rootNote = result.estimatedKey->rootIndex;
+  ScaleDatabase::ScaleType mode =
+      result.estimatedKey->mode == KeyEstimator::Mode::Major
+          ? ScaleDatabase::ScaleType::MajorPantatonic
+          : ScaleDatabase::ScaleType::MinorPantatonic;
 
-  juce::MessageManager::callAsync([this, res = std::move(result),
-                                   segments = std::move(segmentsCopy),
-                                   sampleRate, hopSize]() mutable {
-    showAnalysisResults(res);
-    if (onAnalysisCompletion) {
-      onAnalysisCompletion(segments, sampleRate, hopSize);
-    }
-  });
+  juce::MessageManager::callAsync(
+      [this, res = std::move(result), segments = std::move(segmentsCopy),
+       sampleRate, hopSize, rootNote, mode]() mutable {
+        showAnalysisResults(res);
+        if (onAnalysisCompletion) {
+          onAnalysisCompletion(segments, sampleRate, hopSize, rootNote, mode);
+        }
+      });
 }

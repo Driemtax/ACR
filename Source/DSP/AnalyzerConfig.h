@@ -1,5 +1,7 @@
 #pragma once
 
+#include "KeyEstimator.h"
+
 struct AnalyzerConfig {
   // 1. Spectogram
   int fftOrder = 12;
@@ -28,6 +30,9 @@ struct AnalyzerConfig {
 
   // 4. Classification
   float similarityThreshold = 0.3f;
+  bool useKeyEstimator = false;
+  KeyEstimator::ProfileType profileType =
+      KeyEstimator::ProfileType::KrumhanslKessler;
 
   // Helper to safely set ML defaults
   void setToDeepLearningDefaults() {

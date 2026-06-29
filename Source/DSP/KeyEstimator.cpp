@@ -1,9 +1,96 @@
 #include "KeyEstimator.h"
+#include "../Util/FretboardMapper.h"
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_core/system/juce_PlatformDefs.h"
 #include <algorithm>
 #include <array>
 #include <iterator>
+#include <string>
+
+template <typename T>
+std::ostream &operator<<(std::ostream &os, const std::array<T, 24> &v) {
+  os << "[";
+  for (size_t i = 0; i < v.size(); ++i) {
+    std::cout << v[i];
+    if (i != v.size() - 1)
+      os << ", ";
+  }
+  os << "]";
+  return os;
+}
+
+KeyEstimator::KeyEstimator(ProfileType type) {
+  if (type == ProfileType::Temperley) {
+    majorProfile = {5.0f, 2.0f, 3.5f, 2.0f, 4.5f, 4.0f,
+                    2.0f, 4.5f, 2.0f, 3.5f, 1.5f, 4.0f};
+
+    minorProfile = {5.0f, 2.0f, 3.5f, 4.5f, 2.0f, 4.0f,
+                    2.0f, 4.5f, 3.5f, 2.0f, 1.5f, 4.0f};
+  } else {
+    // Krumhansl-Kessler profiles
+    majorProfile = {6.35f, 2.23f, 3.48f, 2.33f, 4.38f, 4.09f,
+                    2.52f, 5.19f, 2.39f, 3.66f, 2.29f, 2.88f};
+
+    minorProfile = {6.33f, 2.68f, 3.52f, 5.38f, 2.60f, 3.53f,
+                    2.54f, 4.75f, 3.98f, 2.69f, 3.34f, 3.17f};
+  }
+}
+
+/**
+ * @brief Applies key-specific weights to the given chroma features.
+ *
+ * This method modifies the input chroma buffer in-place by multiplying the
+ * chroma bins with the profile weights corresponding to the specified key.
+ * After applying the weights, the chroma features are normalized using the
+ * global maximum value across all frames to ensure the values remain within
+ * a valid range.
+ *
+ * @param chroma A juce::AudioBuffer containing the chroma features to be
+ * weighted. The buffer is modified in-place. The number of samples must be
+ * exactly 12.
+ * @param key The musical key (root note index and mode) used to determine
+ *            the appropriate major or minor profile weights to apply.
+ */
+void KeyEstimator::applyKeyWeights(juce::AudioBuffer<float> &chroma,
+                                   const Key &key) const {
+  const int frameCount = chroma.getNumChannels();
+  if (frameCount == 0)
+    return;
+
+  const int numBins = chroma.getNumSamples();
+  jassert(numBins == 12);
+
+  // choose correct profile
+  const auto &profile = (key.mode == Mode::Major) ? majorProfile : minorProfile;
+
+  // keep track of global max value of the chroma for normalization later on.
+  float globalMax = 0.0f;
+
+  // apply weights of the profile
+  for (int f = 0; f < frameCount; f++) {
+    float *frame = chroma.getWritePointer(f);
+
+    for (int b = 0; b < numBins; b++) {
+      int profileIndex = (b - key.rootIndex + 12) % 12;
+
+      frame[b] = frame[b] * profile[profileIndex];
+
+      if (frame[b] > globalMax) {
+        globalMax = frame[b];
+      }
+    }
+  }
+
+  // Normalize chroma again
+  if (globalMax > 0.0f) {
+    for (int f = 0; f < frameCount; f++) {
+      float *frame = chroma.getWritePointer(f);
+      for (int b = 0; b < numBins; b++) {
+        frame[b] /= globalMax;
+      }
+    }
+  }
+}
 
 /**
  * @brief Estimates the musical key from a given chroma feature matrix.
@@ -23,8 +110,17 @@ KeyEstimator::Key
 KeyEstimator::estimateKey(const juce::AudioBuffer<float> &chroma) const {
   std::array<float, 12> harmonicProfile = calculateHarmonicProfile(chroma);
 
+  std::cout << "Harmonic Profile Bins: " << std::endl;
+
+  for (int i = 0; i < 12; i++) {
+    std::cout << "Bin " << i << " (" << FretboardMapper::getNoteName(i)
+              << "): " << harmonicProfile[i] << std::endl;
+  }
+
   std::array<float, 24> correlations =
       calculateCrossCorrelation(harmonicProfile);
+
+  std::cout << "Correlations: " << correlations << std::endl;
 
   // 1. Find maximum Value of correlations
   int maxValueIndex =
@@ -36,6 +132,10 @@ KeyEstimator::estimateKey(const juce::AudioBuffer<float> &chroma) const {
 
   // 3. Find mode
   Mode mode = maxValueIndex < 12 ? Mode::Major : Mode::Minor;
+  juce::String modeString = mode == Mode::Major ? "Maj" : "Min";
+
+  std::cout << "Key: " << FretboardMapper::getNoteName(rootIndex) << " "
+            << modeString << std::endl;
 
   Key key = {rootIndex, mode};
   return key;

@@ -33,6 +33,21 @@ SettingsComponent::SettingsComponent(AnalyzerConfig &configToEdit,
     chromaResSlider.setEnabled(TuningShiftToggle.getToggleState());
   };
 
+  addAndMakeVisible(keyEstimationToggle);
+  keyEstimationToggle.setToggleState(config.useKeyEstimator,
+                                     juce::dontSendNotification);
+  keyEstimationToggle.onClick = [this] {
+    profileSelector.setEnabled(keyEstimationToggle.getToggleState());
+  };
+
+  addAndMakeVisible(profileLabel);
+  addAndMakeVisible(profileSelector);
+  profileSelector.addItem("Krumhansl-Kessler", 1);
+  profileSelector.addItem("Temperley", 2);
+  profileSelector.setSelectedId(
+      config.profileType == KeyEstimator::ProfileType::KrumhanslKessler ? 1 : 2,
+      juce::dontSendNotification);
+
   // configure sliders for range and default values
   auto setupSlider = [this](juce::Slider &sl, juce::Label &label, double min,
                             double max, double step, double val) {
@@ -70,6 +85,10 @@ SettingsComponent::SettingsComponent(AnalyzerConfig &configToEdit,
     config.similarityThreshold = static_cast<float>(thresholdSlider.getValue());
     config.chromaRes = static_cast<int>(chromaResSlider.getValue());
     config.tuningShift = TuningShiftToggle.getToggleState();
+    config.useKeyEstimator = keyEstimationToggle.getToggleState();
+    config.profileType = profileSelector.getSelectedId() == 1
+                             ? KeyEstimator::ProfileType::KrumhanslKessler
+                             : KeyEstimator::ProfileType::Temperley;
 
     if (onSaveCallback)
       onSaveCallback();
@@ -138,6 +157,12 @@ void SettingsComponent::setUIDefaults() {
   chromaResSlider.setValue(config.chromaRes);
   TuningShiftToggle.setToggleState(config.tuningShift,
                                    juce::dontSendNotification);
+  keyEstimationToggle.setToggleState(config.useKeyEstimator,
+                                     juce::dontSendNotification);
+  profileSelector.setSelectedId(
+      config.profileType == KeyEstimator::ProfileType::KrumhanslKessler ? 1 : 2,
+      juce::dontSendNotification);
+  profileSelector.setEnabled(config.useKeyEstimator);
 }
 
 void SettingsComponent::resized() {
@@ -169,6 +194,12 @@ void SettingsComponent::resized() {
   TuningShiftToggle.setBounds(margin, y, getWidth() - (margin * 2), height);
   y += height + 10;
   layoutRow(chromaResLabel, chromaResSlider);
+
+  keyEstimationToggle.setBounds(margin, y, getWidth() - (margin * 2), height);
+  y += height + 10;
+  profileLabel.setBounds(margin, y, labelWidth, height);
+  profileSelector.setBounds(margin + labelWidth, y, sliderWidht, height);
+  y += height + 10;
 
   saveButton.setBounds((getWidth() / 2) - 60, y + 10, 120, 40);
 }

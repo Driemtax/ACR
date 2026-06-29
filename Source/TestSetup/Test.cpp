@@ -24,9 +24,64 @@ void Test::runAllTests() const {
   testName = "DeepChroma_noGain";
   config.setToDeepLearningDefaults();
   runTests(config, const_cast<juce::String &>(testName), true);
+}
 
-  // TODO: run tests on every config
-  // TODO: Output every result json with appropriate name
+void Test::keyEstimatorTest() const {
+  std::cout << "\n=== Start KeyEstimator Vergleichstest ===" << std::endl;
+
+  AnalyzerConfig config;
+
+  // --- 1. HPCP configuration  ---
+  std::cout << "\n[1/4] Teste HPCP (OHNE Smoothing)..." << std::endl;
+  config.useDeepLearning = false;
+  config.medianFilter = true;
+  config.medianWindowSize = 19;
+
+  config.useKeyEstimator = false;
+  float hpcpNoKey = runTests(config, "HPCP_NoKeySmoothing", true);
+
+  std::cout << "[2/4] Teste HPCP (MIT Smoothing)..." << std::endl;
+  config.useKeyEstimator = true;
+  float hpcpWithKey = runTests(config, "HPCP_WithKeySmoothing", true);
+
+  // --- 2. Deep Learning Konfiguration ---
+  std::cout << "\n[3/4] Teste Deep Learning (OHNE Smoothing)..." << std::endl;
+  config.setToDeepLearningDefaults();
+
+  config.useKeyEstimator = false;
+  float deepNoKey = runTests(config, "DeepChroma_NoKeySmoothing", true);
+
+  std::cout << "[4/4] Teste Deep Learning (MIT Smoothing)..." << std::endl;
+  config.useKeyEstimator = true;
+  float deepWithKey = runTests(config, "DeepChroma_WithKeySmoothing", true);
+
+  // --- 3. Ergebnisse berechnen und übersichtlich ausgeben ---
+  float hpcpDiff = (hpcpWithKey - hpcpNoKey) * 100.0f;
+  float deepDiff = (deepWithKey - deepNoKey) * 100.0f;
+
+  std::cout << "\n=========================================" << std::endl;
+  std::cout << "               ERGEBNISSE                " << std::endl;
+  std::cout << "=========================================\n" << std::endl;
+
+  // HPCP Block
+  std::cout << "--- HPCP (Traditionell) ---" << std::endl;
+  std::cout << "Ohne KeyEstimator: " << hpcpNoKey * 100.0f << " %" << std::endl;
+  std::cout << "Mit KeyEstimator:  " << hpcpWithKey * 100.0f << " %"
+            << std::endl;
+  std::cout << "Differenz:         " << (hpcpDiff > 0 ? "+" : "") << hpcpDiff
+            << " Prozentpunkte\n"
+            << std::endl;
+
+  // Deep Learning Block
+  std::cout << "--- Deep Learning ---" << std::endl;
+  std::cout << "Ohne KeyEstimator: " << deepNoKey * 100.0f << " %" << std::endl;
+  std::cout << "Mit KeyEstimator:  " << deepWithKey * 100.0f << " %"
+            << std::endl;
+  std::cout << "Differenz:         " << (deepDiff > 0 ? "+" : "") << deepDiff
+            << " Prozentpunkte\n"
+            << std::endl;
+
+  std::cout << "=========================================" << std::endl;
 }
 
 void Test::findMaxima() const {

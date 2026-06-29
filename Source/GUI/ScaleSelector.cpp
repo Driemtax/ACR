@@ -36,6 +36,27 @@ ScaleSelector::ScaleSelector() {
   addAndMakeVisible(scaleTypeSelector);
 }
 
+void ScaleSelector::setScale(int rootNote, ScaleDatabase::ScaleType type) {
+  // Dropdown ID's start at 1 since 0 = no selection
+  int rootId = rootNote + 1;
+
+  // Select Scale Id
+  int scaleId = -1;
+
+  const auto &scales = ScaleDatabase::getAllScales();
+  for (int i = 0; i < static_cast<int>(scales.size()); i++) {
+    if (scales[i].type == type) {
+      scaleId = i + 1;
+      break;
+    }
+  }
+
+  if (scaleId > 0) {
+    keySelector.setSelectedId(rootId, juce::sendNotificationSync);
+    scaleTypeSelector.setSelectedId(scaleId, juce::sendNotificationSync);
+  }
+}
+
 void ScaleSelector::resized() {
   auto area = getLocalBounds().reduced(4);
 

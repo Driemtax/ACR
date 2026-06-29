@@ -38,6 +38,7 @@ public:
   float runTests(AnalyzerConfig &config, const juce::String testFileName,
                  bool logToConsole) const;
   void findMaxima() const;
+  void keyEstimatorTest() const;
 
 private:
   struct GroundTruthLabel {
