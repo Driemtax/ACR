@@ -106,7 +106,11 @@ SettingsComponent::SettingsComponent(AnalyzerConfig &configToEdit,
     medianWindowSlider.setEnabled(false);
   }
 
-  setSize(400, 500);
+  if (!config.useKeyEstimator) {
+    profileSelector.setEnabled(false);
+  }
+
+  setSize(400, 550);
 }
 
 void SettingsComponent::setDeepLearning() {
