@@ -58,9 +58,10 @@ struct AnalyzerConfig {
     similarityThreshold = 0.3f;
     centerOriginPadding = false;
     convertToDecibel = true;
-    tuningShift = true;
+    tuningShift = false;
     chromaRes = 1;
     medianFilter = true;
     normalizeAudio = true;
+    useKeyEstimator = false;
   }
 };

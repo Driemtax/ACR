@@ -36,7 +36,8 @@ public:
 
   void runAllTests() const;
   float runTests(AnalyzerConfig &config, const juce::String testFileName,
-                 bool logToConsole) const;
+                 juce::String inputDir = "", bool logToConsole = true,
+                 bool saveFullJson = true) const;
   void findMaxima() const;
   void keyEstimatorTest() const;
 
@@ -48,7 +49,10 @@ private:
   };
 
   void findMaximaMedianWindowSize() const;
-  void findMaximaFloatParameters() const;
+  void findMaximaFloatParameters(const juce::String &testDir) const;
+  void findMaximaThreshold(AnalyzerConfig config,
+                           const juce::String &testName) const;
+  void findMaximaSParameter() const;
   void findMaximaThresholdDeepLearning() const;
 
   std::vector<GroundTruthLabel>
@@ -74,6 +78,7 @@ private:
                                     .getParentDirectory();
   const juce::File testDataDir = projectDir.getFullPathName() +
                                  juce::File::getSeparatorString() + "Testfiles";
-  const juce::File outputDir = projectDir.getFullPathName() +
-                               juce::File::getSeparatorString() + "TestResults";
+  const juce::File outputDir =
+      projectDir.getFullPathName() + juce::File::getSeparatorString() +
+      "TestResults" + juce::File::getSeparatorString() + "ThesisTests";
 };

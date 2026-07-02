@@ -57,8 +57,7 @@ ScienceView::ScienceView(AudioEngine &engine, AnalyzerConfig &cfg)
 
     std::thread([this]() {
       Test tester;
-      // tester.runAllTests();
-      tester.keyEstimatorTest();
+      tester.runAllTests();
 
       juce::MessageManager::callAsync([this]() {
         loadingText.setText("Tests Finished!", juce::dontSendNotification);

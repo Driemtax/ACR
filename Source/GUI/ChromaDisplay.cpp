@@ -127,6 +127,11 @@ public:
     g.fillAll(juce::Colours::black);
     g.drawImageAt(image, leftMargin, topMargin);
 
+    int scrollX = viewport != nullptr ? viewport->getViewPositionX() : 0;
+
+    // update play button position to make it sticky: left
+    playButton.setBounds(scrollX, 5, 30, 20);
+
     // --- LABELS ---
 
     // 1. y-Axis: noteNames
@@ -142,14 +147,21 @@ public:
       float yPos = static_cast<float>(image.getHeight() -
                                       ((i + 1) * binHeight) + topMargin);
 
-      g.drawText(noteNames[i], 10, static_cast<int>(yPos), leftMargin - 8,
-                 static_cast<int>(binHeight), juce::Justification::centredLeft,
-                 false);
-
+      // 1. horizontal lines
       g.setColour(juce::Colours::white.withAlpha(0.8f));
       g.drawLine(static_cast<float>(leftMargin), yPos,
                  static_cast<float>(getWidth()), yPos, 1.0f);
+
+      // 2. black box background for label on y-axis
+      g.setColour(juce::Colours::black);
+      g.fillRect(scrollX, static_cast<int>(yPos), leftMargin,
+                 static_cast<int>(binHeight));
+
+      // 3. note name labels
       g.setColour(juce::Colours::white);
+      g.drawText(noteNames[i], scrollX + 10, static_cast<int>(yPos),
+                 leftMargin - 8, static_cast<int>(binHeight),
+                 juce::Justification::centredLeft, false);
     }
 
     // 2. x-axis: frames

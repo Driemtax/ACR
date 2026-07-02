@@ -110,17 +110,8 @@ KeyEstimator::Key
 KeyEstimator::estimateKey(const juce::AudioBuffer<float> &chroma) const {
   std::array<float, 12> harmonicProfile = calculateHarmonicProfile(chroma);
 
-  std::cout << "Harmonic Profile Bins: " << std::endl;
-
-  for (int i = 0; i < 12; i++) {
-    std::cout << "Bin " << i << " (" << FretboardMapper::getNoteName(i)
-              << "): " << harmonicProfile[i] << std::endl;
-  }
-
   std::array<float, 24> correlations =
       calculateCrossCorrelation(harmonicProfile);
-
-  std::cout << "Correlations: " << correlations << std::endl;
 
   // 1. Find maximum Value of correlations
   int maxValueIndex =
@@ -133,9 +124,6 @@ KeyEstimator::estimateKey(const juce::AudioBuffer<float> &chroma) const {
   // 3. Find mode
   Mode mode = maxValueIndex < 12 ? Mode::Major : Mode::Minor;
   juce::String modeString = mode == Mode::Major ? "Maj" : "Min";
-
-  std::cout << "Key: " << FretboardMapper::getNoteName(rootIndex) << " "
-            << modeString << std::endl;
 
   Key key = {rootIndex, mode};
   return key;

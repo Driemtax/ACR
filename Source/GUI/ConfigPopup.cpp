@@ -127,6 +127,8 @@ void SettingsComponent::setDeepLearning() {
   thresholdSlider.setEnabled(false);
   chromaResSlider.setEnabled(false);
   TuningShiftToggle.setEnabled(false);
+  keyEstimationToggle.setEnabled(false);
+  profileSelector.setEnabled(false);
 }
 
 void SettingsComponent::setHPCP() {
@@ -144,6 +146,10 @@ void SettingsComponent::setHPCP() {
   TuningShiftToggle.setEnabled(true);
   if (config.tuningShift) {
     chromaResSlider.setEnabled(true);
+  }
+
+  if (config.useKeyEstimator) {
+    profileSelector.setEnabled(true);
   }
 
   // update UI
