@@ -8,6 +8,7 @@ json_files = [
     "C:\\dev\\ACR\\TestResults\\ThesisTests\\results_ML_Base_noGain_noPowerchords.json",
     "C:\\dev\\ACR\\TestResults\\ThesisTests\\results_ML_Base_noGain.json",
     "C:\\dev\\ACR\\TestResults\\ThesisTests\\results_ML_Base.json",
+    "C:\\dev\\ACR\\TestResults\\results_DeepChroma_WithKeySmoothing.json",
 ]
 
 test_names = []
@@ -32,11 +33,7 @@ fig, ax = plt.subplots(figsize=(8, 6))
 
 # Balkendiagramm zeichnen (zorder=3 legt Balken ÜBER die Gridlinien)
 bars = ax.bar(
-    [
-        "noGain_noPowerchords",
-        "noGain",
-        "base",
-    ],
+    ["noGain_noPowerchords", "noGain", "base", "newBase"],
     accuracies,
     color="#4C72B0",
     width=0.5,
@@ -44,7 +41,7 @@ bars = ax.bar(
 )
 
 # Titel und Achsenbeschriftungen
-ax.set_title("Deep Learning Baseline Vergleich", fontsize=14, pad=15)
+ax.set_title("Deep Learning Baseline Vergleich (optimiert)", fontsize=14, pad=15)
 ax.set_ylabel("Genauigkeit (%)", fontsize=12)
 
 # Y-Achse sinnvoll skalieren (Damit oben etwas Platz für die Labels bleibt)
@@ -63,7 +60,7 @@ ax.bar_label(
 plt.tight_layout()
 
 # 5. Bild als hochauflösendes PNG exportieren
-output_file = "ml_baseline_barchart.png"
+output_file = "ml_new_baseline_barchart.png"
 plt.savefig(output_file, dpi=300)
 print(f"Erfolgreich! Graph gespeichert als '{output_file}'.")
 
