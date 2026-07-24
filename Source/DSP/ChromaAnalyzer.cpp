@@ -120,10 +120,17 @@ void ChromaAnalyzer::processFrame(const float *currentFrame, int frameNum,
     outChroma.getWritePointer(frameNum)[n] = sumBinEnergy;
   }
 
+  // spectralPitchTracking(outChroma, frameNum, binFreqs);
+}
+
+void ChromaAnalyzer::spectralPitchTracking(
+    juce::AudioBuffer<float> &outChroma, int frameNum,
+    std::vector<std::vector<FrequencyContribution>> &binFreqs) const {
   // ===============================================================================
   // 2. SPECTRAL PITCH TRACKING
   // ===============================================================================
   float *frameOut = outChroma.getWritePointer(frameNum);
+  const int numBins = outChroma.getNumSamples();
 
   // A. sort contributions and pick top 5
   for (int n = 0; n < numBins; n++) {

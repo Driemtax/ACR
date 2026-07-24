@@ -60,6 +60,9 @@ private:
   void normalizeBins(juce::AudioBuffer<float> &outChroma);
   void applyMedianFilter(juce::AudioBuffer<float> &chroma);
   void scaleChroma(juce::AudioBuffer<float> &chroma) const;
+  void spectralPitchTracking(
+      juce::AudioBuffer<float> &chroma, int frameNum,
+      std::vector<std::vector<FrequencyContribution>> &binFreqs) const;
 
   std::vector<Peak> currentPeaks;
 
