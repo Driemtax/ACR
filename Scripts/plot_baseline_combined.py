@@ -14,7 +14,7 @@ json_files_hpcp = [
 json_files_ml = [
     "C:\\dev\\ACR\\TestResults\\ThesisTests\\results_ML_Base_noGain_noPowerchords.json",
     "C:\\dev\\ACR\\TestResults\\ThesisTests\\results_ML_Base_noGain.json",
-    "C:\\dev\\ACR\\TestResults\\results_DeepChroma_WithKeySmoothing.json",
+    "C:\\dev\\ACR\\TestResults\\ThesisTests\\results_ML_Base_Median.json",
 ]
 
 # Bezeichnungen für die X-Achse (entsprechend der 3 Testfälle)

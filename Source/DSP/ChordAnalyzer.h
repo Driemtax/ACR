@@ -48,6 +48,7 @@ private:
   int chromaRes = 1;
   int chromaSize = 12;
   bool tuningShift = true;
+  float ratio = 3.8f;
 
   // Deep Chroma Extractor
   bool useDeepLearning = false;

@@ -11,7 +11,8 @@
 #include <memory>
 #include <vector>
 
-DeepChromaExtractor::DeepChromaExtractor(int binSize) : chromaBinSize(binSize) {
+DeepChromaExtractor::DeepChromaExtractor(int binSize, int medianSize)
+    : chromaBinSize(binSize), medianSize(medianSize) {
   loadModel();
 }
 
@@ -185,6 +186,46 @@ void DeepChromaExtractor::extractChroma(
 
     for (int i = 0; i < std::min(12, outSize); i++) {
       chromaWrite[i] = outputData[i];
+    }
+  }
+
+  // Apply Median Filter
+  applyMedianFilter(chroma);
+}
+
+void DeepChromaExtractor::applyMedianFilter(
+    juce::AudioBuffer<float> &chroma) const {
+  juce::AudioBuffer<float> ogChroma;
+  ogChroma.makeCopyOf(chroma);
+
+  const int medianWindowSize = medianSize;
+  const int medianMid = medianWindowSize / 2;
+  const int maxFrames = chroma.getNumChannels();
+  int currentIndex = 0;
+
+  // the loop from -medianMid to medianMid always produces 2 * medianMid + 1
+  // iterations
+  std::vector<float> currentValues(2 * medianMid + 1, 0.0f);
+
+  for (int frame = 0; frame < maxFrames; frame++) {
+    float *outputFrame = chroma.getWritePointer(frame);
+    for (int bin = 0; bin < chroma.getNumSamples(); bin++) {
+      // iterate over the bin of the left and right neighbours and calculate the
+      // median.
+      for (int i = -medianMid; i <= medianMid; i++) {
+        // This ensures we dont access out of bounds elements!
+        currentIndex = std::max(0, std::min(maxFrames - 1, frame + i));
+        const float *neighbourFrame = ogChroma.getReadPointer(currentIndex);
+        currentValues[i + medianMid] = neighbourFrame[bin];
+      }
+
+      auto first = currentValues.begin();
+      auto nth = first + medianMid;
+      auto last = currentValues.end();
+      std::nth_element(first, nth, last);
+
+      // The result of nth_element is garanteed to be at index medianMid.
+      outputFrame[bin] = currentValues[medianMid];
     }
   }
 }
