@@ -8,22 +8,26 @@
 #include "../DSP/ChromaExtractorInterface.h"
 
 class DeepChromaExtractor : public ChromaExtractorInterface {
-    public:
-        DeepChromaExtractor(int binSize);
-        ~DeepChromaExtractor() = default;
+public:
+  DeepChromaExtractor(int binSize, int medianSize);
+  ~DeepChromaExtractor() = default;
 
-        void extractChroma(const juce::AudioBuffer<float> &spectogram, juce::AudioBuffer<float> &chroma) override;
-        int getChromaBinSize() const override;
-    private:
-       void loadModel();
+  void extractChroma(const juce::AudioBuffer<float> &spectogram,
+                     juce::AudioBuffer<float> &chroma) override;
+  int getChromaBinSize() const override;
 
-       const wchar_t* modelPath = L"C:\\Test\\ML\\deep_chroma.onnx";
+private:
+  void loadModel();
+  void applyMedianFilter(juce::AudioBuffer<float> &chroma) const;
 
-       // onnx config
-       Ort::Env ortEnv;
-       std::unique_ptr<Ort::Session> ortSession;
-       Ort::SessionOptions sessionOptions;
+  const wchar_t *modelPath = L"C:\\Test\\ML\\deep_chroma.onnx";
 
-       // chroma size
-       int chromaBinSize;
+  // onnx config
+  Ort::Env ortEnv;
+  std::unique_ptr<Ort::Session> ortSession;
+  Ort::SessionOptions sessionOptions;
+
+  // chroma size
+  int chromaBinSize;
+  int medianSize = 19;
 };

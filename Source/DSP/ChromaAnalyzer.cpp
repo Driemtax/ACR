@@ -8,11 +8,11 @@
 
 ChromaAnalyzer::ChromaAnalyzer(float sampleRate, float fftSize, float s,
                                int chromaRes, int medianWindow,
-                               bool medianFilter, bool tuningShift)
+                               bool medianFilter, bool tuningShift, float ratio)
     : fftBinFrequencies(static_cast<int>(fftSize / 2)),
       binMids(chromaSize * chromaRes), harmonicWeights(8),
       resolution(chromaRes), s(s), medianWindow(medianWindow),
-      medianFilter(medianFilter), tuningShift(tuningShift) {
+      medianFilter(medianFilter), tuningShift(tuningShift), sptRatio(ratio) {
   int numBins = static_cast<int>(fftSize / 2);
 
   for (int i = 0; i < numBins; i++) {
@@ -87,25 +87,113 @@ void ChromaAnalyzer::processFrame(const float *currentFrame, int frameNum,
   float harmonicWeight = 0.0f;
   float squaredMag = 0.0f;
 
+  int numBins = chromaSize * resolution;
+
+  std::vector<std::vector<FrequencyContribution>> binFreqs(chromaSize);
+
   extractPeaks(currentFrame);
 
   // Iterate over all Bins
-  for (int n = 0; n < chromaSize * resolution; n++) {
+  for (int n = 0; n < numBins; n++) {
     sumBinEnergy = 0.0f;
     // Iterate over every peak and calculate HPCP
     for (const auto &p : currentPeaks) {
       squaredMag = p.magnitude * p.magnitude;
+      float peakContribution = 0.0f;
       // Iterate over 8 harmonics
       for (int h = 0; h < 8; h++) {
         dist = calculateDistance(p.frequency / (h + 1), binMids[n]);
         freqWeight = calculateWeightFreq(dist);
         harmonicWeight = harmonicWeights[h];
 
-        sumBinEnergy += freqWeight * harmonicWeight * squaredMag;
+        float energy = freqWeight * harmonicWeight * squaredMag;
+        sumBinEnergy += energy;
+        peakContribution += energy;
+      }
+
+      // persist frequency contribution for spectral pitch tracking
+      if (peakContribution > 0.0f) {
+        binFreqs[n].push_back({p.frequency, peakContribution});
       }
     }
 
     outChroma.getWritePointer(frameNum)[n] = sumBinEnergy;
+  }
+
+  // spectralPitchTracking(outChroma, frameNum, binFreqs);
+}
+
+void ChromaAnalyzer::spectralPitchTracking(
+    juce::AudioBuffer<float> &outChroma, int frameNum,
+    std::vector<std::vector<FrequencyContribution>> &binFreqs) const {
+  // ===============================================================================
+  // 2. SPECTRAL PITCH TRACKING
+  // ===============================================================================
+  float *frameOut = outChroma.getWritePointer(frameNum);
+  const int numBins = outChroma.getNumSamples();
+
+  // A. sort contributions and pick top 5
+  for (int n = 0; n < numBins; n++) {
+    auto &freqs = binFreqs[n];
+
+    // sort in descending order per energy contributio
+    std::sort(freqs.begin(), freqs.end());
+
+    if (freqs.size() > 5) {
+      freqs.resize(5);
+    }
+  }
+
+  // B. Calculate dominant bin (most probably root note)
+  int rootBin = 0;
+  float maxEnergy = 0.0f;
+
+  for (int n = 0; n < numBins; n++) {
+    if (frameOut[n] > maxEnergy) {
+      maxEnergy = frameOut[n];
+      rootBin = n;
+    }
+  }
+
+  // C. Check for artificial harmonic thirds
+  int fifthBin = (rootBin + 7 * resolution) % numBins;
+
+  if (maxEnergy > 0.001f) {
+    int majorThird = (rootBin + 4 * resolution) % numBins;
+    int minorThird = (rootBin + 3 * resolution) % numBins;
+
+    int thirdBin =
+        frameOut[majorThird] >= frameOut[minorThird] ? majorThird : minorThird;
+
+    // only filter if third has enough energy to be accounted for
+    if (frameOut[thirdBin] > 0.1f * maxEnergy) {
+      const auto &rootFreqs = binFreqs[rootBin];
+      const auto &thirdFreqs = binFreqs[thirdBin];
+
+      if (!rootFreqs.empty() && !thirdFreqs.empty()) {
+        float f_root_lowest = 99999.0f;
+        for (const auto &fc : rootFreqs) {
+          if (fc.frequency < f_root_lowest)
+            f_root_lowest = fc.frequency;
+        }
+
+        float f_third_lowest = 99999.0f;
+        for (const auto &fc : thirdFreqs) {
+          if (fc.frequency < f_third_lowest)
+            f_third_lowest = fc.frequency;
+        }
+
+        float ratio = f_third_lowest / f_root_lowest;
+
+        // if the lowest frequency found for the third equals more then 3.8
+        // times the lowest root frequency then there is no real third, its just
+        // artificial harmonics.
+        if (ratio > sptRatio) {
+          // dampen to 10 %
+          frameOut[thirdBin] *= 0.1f;
+        }
+      }
+    }
   }
 }
 

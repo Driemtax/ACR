@@ -6,7 +6,9 @@ import pandas as pd
 import seaborn as sns
 
 # 1. Dateipfad zur JSON-Datei definieren (Anpassen!)
-json_file = "C:\\dev\\ACR\\TestResults\\ThesisTests\\results_ML_Base.json"
+json_file = (
+    "C:\\dev\\ACR\\TestResults\\ThesisTests\\results_ML_Base_Median.json"
+)
 
 # 2. Datenstruktur für Pandas vorbereiten
 data_list = []
@@ -52,24 +54,40 @@ df = pd.DataFrame(data_list)
 # 3. Daten sortieren und ordnen
 # NEU: X-Achse nach "Clean"-Genauigkeit absteigend sortieren
 # a) Filtere nur die "Clean"-Ergebnisse und sortiere sie absteigend nach Genauigkeit
-clean_df = df[df["Verzerrung"] == "Clean"].sort_values(
-    by="Genauigkeit", ascending=False
-)
+#clean_df = df[df["Verzerrung"] == "Clean"].sort_values(
+#    by="Genauigkeit", ascending=False
+#)
 # b) Extrahiere die Testfall-Namen in dieser absteigenden Reihenfolge als Liste
-sorted_testfaelle = clean_df["Testfall"].tolist()
+#sorted_testfaelle = clean_df["Testfall"].tolist()
 
 # c) Fallback: Falls ein Testfall zufällig keinen "Clean"-Eintrag hat, wird er hinten angehängt
-missing = [tf for tf in df["Testfall"].unique() if tf not in sorted_testfaelle]
-sorted_testfaelle.extend(missing)
+#missing = [tf for tf in df["Testfall"].unique() if tf not in sorted_testfaelle]
+#sorted_testfaelle.extend(missing)
 
 # d) Wende diese sortierte Liste als feste Kategorie-Reihenfolge auf die Spalte 'Testfall' an
+#df["Testfall"] = pd.Categorical(
+#    df["Testfall"], categories=sorted_testfaelle, ordered=True
+#)
+# Sort by name
+custom_order = [
+    "cmaj",
+    "fmin",
+    "blues",
+    "pop",
+    "arppegios",
+    "palmMuting",
+    "d5",
+    "metal",
+    "staccato",
+]
+
 df["Testfall"] = pd.Categorical(
-    df["Testfall"], categories=sorted_testfaelle, ordered=True
+    df["Testfall"], categories=custom_order, ordered=True
 )
 
 # Sicherstellen, dass die Reihenfolge der Linien logisch ist (Clean -> Low -> High)
-gain_order = ["Clean", "Low Gain", "High Gain"]
-df["Verzerrung"] = pd.Categorical(df["Verzerrung"], categories=gain_order, ordered=True)
+#gain_order = ["Clean", "Low Gain", "High Gain"]
+#df["Verzerrung"] = pd.Categorical(df["Verzerrung"], categories=gain_order, ordered=True)
 
 # 4. Plot erstellen
 sns.set_theme(style="whitegrid")
@@ -78,20 +96,33 @@ plt.figure(figsize=(12, 7))
 # Liniengraph mit Seaborn
 sns.lineplot(
     data=df,
-    x="Testfall",
-    y="Genauigkeit",
-    hue="Verzerrung",
-    style="Verzerrung",  # Setzt unterschiedliche Marker für s/w-Druckbarkeit
-    markers=["o", "s", "D"],  # Kreis, Quadrat, Diamant
-    dashes=False,
-    linewidth=2.5,
-    markersize=8,
-    palette=["#2ca02c", "#ff7f0e", "#d62728"],  # Grün, Orange, Rot
+        x="Testfall",
+        y="Genauigkeit",
+        hue="Verzerrung",
+        style="Verzerrung",
+        # 1. Farben hart zuweisen
+        palette={
+            "Clean": "#2ca02c",
+            "Low Gain": "#ff7f0e",
+            "High Gain": "#d62728"
+        },
+        # 2. Marker hart zuweisen
+        markers={
+            "Clean": "o",
+            "Low Gain": "s",
+            "High Gain": "D"
+        },
+        # 3. Reihenfolge für Seaborn erzwingen (ersetzt das pd.Categorical)
+        hue_order=["Clean", "Low Gain", "High Gain"],
+        style_order=["Clean", "Low Gain", "High Gain"],
+        dashes=False,
+        linewidth=2.5,
+        markersize=8,
 )
 
 # 5. Styling: Titel und Labels
 plt.title(
-    "Einfluss der Verzerrung auf die Akkorderkennung (ML Baseline)",
+    "Einfluss der Verzerrung auf die Akkorderkennung (Deep Chroma Extractor)",
     fontsize=15,
     pad=15,
 )
@@ -110,7 +141,7 @@ plt.ylim(0, 105)
 plt.tight_layout()
 
 # 6. Bild speichern und anzeigen
-output_file = "ml_baseline_details.png"
+output_file = "ML_baseline_details.png"
 plt.savefig(output_file, dpi=300)
 print(f"Erfolgreich! Graph gespeichert als '{output_file}'.")
 

@@ -8,7 +8,7 @@ json_files = [
     "C:\\dev\\ACR\\TestResults\\ThesisTests\\results_ML_Base_noGain_noPowerchords.json",
     "C:\\dev\\ACR\\TestResults\\ThesisTests\\results_ML_Base_noGain.json",
     "C:\\dev\\ACR\\TestResults\\ThesisTests\\results_ML_Base.json",
-    "C:\\dev\\ACR\\TestResults\\results_DeepChroma_WithKeySmoothing.json",
+    "C:\\dev\\ACR\\TestResults\\ThesisTests\\results_ML_Base_Median.json",
 ]
 
 test_names = []
@@ -60,7 +60,7 @@ ax.bar_label(
 plt.tight_layout()
 
 # 5. Bild als hochauflösendes PNG exportieren
-output_file = "ml_new_baseline_barchart.png"
+output_file = "ml_new_baseline_barchart_median.png"
 plt.savefig(output_file, dpi=300)
 print(f"Erfolgreich! Graph gespeichert als '{output_file}'.")
 

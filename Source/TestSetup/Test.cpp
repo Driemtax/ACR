@@ -37,7 +37,7 @@ void Test::runAllTests() const {
 
   // 5. TestCase: HPCP s parameter sweep
   // findMaximaSParameter();
-  findMaximaFloatParameters("");
+  // findMaximaFloatParameters("");
 
   // 6. TestCase: HPCP median Filter sweep
   // findMaximaMedianWindowSize();
@@ -60,7 +60,7 @@ void Test::runAllTests() const {
   // config.useDeepLearning = false;
   // config.useKeyEstimator = false;
   // config.tuningShift = false;
-  // testName = "HPCP_newBase";
+  // testName = "HPCP_newBase_pitchTracking2";
   // runTests(config, testName, "", true, true);
 
   // 8. TestCase: deep learning base with no gain, no powerchords
@@ -74,8 +74,11 @@ void Test::runAllTests() const {
   // runTests(config, testName, "noGain", true, true);
 
   // 10. TestCase: deep learning base with gain
-  // testName = "ML_Base";
-  // runTests(config, testName, "", true, true);
+  config.setToDeepLearningDefaults();
+  config.medianWindowSize = 47;
+  testName = "ML_Base_Median";
+  runTests(config, testName, "", true, true);
+  // findMaximaMedianWindowSize();
 
   // 11. TestCase: deep learning similarityThreshold sweep
   // testName = "ML_thresholdSweep";
@@ -147,15 +150,14 @@ void Test::findMaxima() const {
   // findMaximaMedianWindowSize();
   // findMaximaFloatParameters();
 
-  findMaximaThresholdDeepLearning();
+  findMaximaFloatGeneric(&AnalyzerConfig::sptRatio, "sptRatio", 0.0f, 5.0f);
+
+  // findMaximaThresholdDeepLearning();
 }
 
 void Test::findMaximaMedianWindowSize() const {
   AnalyzerConfig config;
-  config.s = 0.6;
-  config.similarityThreshold = 0.3;
-  config.medianFilter = true;
-  config.useKeyEstimator = false;
+  config.setToDeepLearningDefaults();
 
   int bestWindowSize = 1;
   float highestAccuracy = 0.0f;
@@ -165,7 +167,7 @@ void Test::findMaximaMedianWindowSize() const {
 
   std::cout << "\n=== STARTE MEDIAN WINDOW SWEEP ===" << std::endl;
 
-  for (int i = 121; i <= 231; i += 2) {
+  for (int i = 1; i <= 145; i += 2) {
     config.medianWindowSize = i;
 
     currentAccuracy = runTests(config, "", "", false, false);
@@ -184,8 +186,7 @@ void Test::findMaximaMedianWindowSize() const {
     }
   }
 
-  juce::File outputFile =
-      outputDir.getChildFile("results_HPCP_MedianSweep.json");
+  juce::File outputFile = outputDir.getChildFile("results_ML_MedianSweep.json");
   saveResultsToJSON(juce::var(sweepResultsArray), outputFile);
 
   std::cout << "\n=== SWEEP ABGESCHLOSSEN ===" << std::endl;
@@ -252,6 +253,86 @@ void Test::findMaximaThresholdDeepLearning() const {
   std::cout << "Beste Parameter:" << std::endl;
   std::cout << "similarityThreshold = " << bestThreshold << std::endl;
   std::cout << "Finale Accuracy = " << bestAccuracy << "%" << std::endl;
+}
+
+void Test::findMaximaFloatGeneric(float AnalyzerConfig::*param,
+                                  const juce::String &testName,
+                                  const float minVal,
+                                  const float maxVal) const {
+  AnalyzerConfig config;
+  config.setToDefaults();
+
+  juce::Array<juce::var> resultsArray;
+
+  float bestParam = 0.0f;
+  float bestAccuracy = -1.0f;
+  float paramMin = minVal;
+  float paramMax = maxVal;
+  float paramStep = 0.1f;
+
+  std::cout << "=== FLOAT SWEEP STARTED ===" << std::endl;
+  std::cout << "=== STARTE GROBE RASTERSUCHE ===" << std::endl;
+
+  for (float p = paramMin; p < paramMax; p += paramStep) {
+    (config.*param) = p;
+
+    float currentAccuracy = runTests(config, "", "", false, false);
+
+    juce::DynamicObject::Ptr sweepEntry = new juce::DynamicObject();
+    sweepEntry->setProperty(testName, static_cast<double>(p));
+    sweepEntry->setProperty("accuracy", static_cast<double>(currentAccuracy));
+    resultsArray.add(juce::var(sweepEntry.get()));
+
+    std::cout << "Test " << testName << " =" << p
+              << " -> Accuracy: " << currentAccuracy * 100.0f << "%"
+              << std::endl;
+
+    if (currentAccuracy > bestAccuracy) {
+      bestAccuracy = currentAccuracy;
+      bestParam = p;
+    }
+  }
+
+  std::cout << "Grobes Maximum gefunden bei " << testName << " =" << bestParam
+            << " (Accuracy: " << bestAccuracy << "%)" << std::endl;
+
+  std::cout << "\n=== STARTE FEINE RASTERSUCHE ===" << std::endl;
+  paramMin = std::max(0.0f, bestParam - paramStep);
+  paramMax = std::min(maxVal, bestParam + paramStep);
+
+  paramStep = 0.02f;
+
+  for (float p = paramMin; p < paramMax; p += paramStep) {
+    (config.*param) = p;
+
+    float currentAccuracy = runTests(config, "", "", false, false);
+
+    juce::DynamicObject::Ptr sweepEntry = new juce::DynamicObject();
+    sweepEntry->setProperty(testName, static_cast<double>(p));
+    sweepEntry->setProperty("accuracy", currentAccuracy);
+    resultsArray.add(juce::var(sweepEntry.get()));
+
+    std::cout << "Test " << testName << " =" << p
+              << " -> Accuracy: " << currentAccuracy * 100.0f << "%"
+              << std::endl;
+
+    if (currentAccuracy > bestAccuracy) {
+      bestAccuracy = currentAccuracy;
+      bestParam = p;
+    }
+  }
+
+  juce::File outputFile =
+      outputDir.getChildFile("results_" + testName + "_sweep.json");
+  saveResultsToJSON(juce::var(resultsArray), outputFile);
+
+  std::cout << "\n=== OPTIMIERUNG ABGESCHLOSSEN ===" << std::endl;
+  std::cout << "Beste Parameter:" << std::endl;
+  std::cout << testName << " = " << bestParam << std::endl;
+  std::cout << "Finale Accuracy = " << bestAccuracy << "%" << std::endl;
+  std::cout << "Grid Suche Daten gespeichert in: "
+            << outputFile.getFullPathName() << std::endl;
+  std::cout << "=== FLOAT SWEEP ENDED ===" << std::endl;
 }
 
 void Test::findMaximaFloatParameters(const juce::String &testDir) const {

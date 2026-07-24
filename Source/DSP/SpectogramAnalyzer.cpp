@@ -2,6 +2,12 @@
 #include "AnalyzerConfig.h"
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_dsp/juce_dsp.h"
+#include <algorithm>
+#include <chrono>
+#include <cstddef>
+#include <ctime>
+#include <execution>
+#include <numeric>
 #include <vector>
 
 SpectogramAnalyzer::SpectogramAnalyzer(int order)
@@ -84,22 +90,44 @@ juce::AudioBuffer<float> SpectogramAnalyzer::processFullFile(
   }
 
   juce::AudioBuffer<float> spectogram(numFrames, numBins);
+  std::vector<int> frameIndices(numFrames);
+  std::iota(frameIndices.begin(), frameIndices.end(), 0);
+
+  auto startTime = std::chrono::high_resolution_clock::now();
 
   // 2. Short-Time Fourier Transform with Hop Size
-
   // Hopping prevents samples to get "lost" due to the windowing function
   // for further details see docs/DSP
-  int frameIndex = 0;
-  for (int startIdx = 0;
-       startIdx + fftSize <= totalSamples && frameIndex < numFrames;
-       startIdx += hopSize) {
-    // Chunk audio into frames
-    frameMagnitudes = processSingleFrame(monoData + startIdx);
+  std::for_each(std::execution::par, frameIndices.begin(), frameIndices.end(),
+                [&](int i) {
+                  int startIdx = i * hopSize;
 
-    juce::FloatVectorOperations::copy(spectogram.getWritePointer(frameIndex),
-                                      frameMagnitudes.data(), numBins);
-    frameIndex++;
-  }
+                  auto magnitudes = processSingleFrame(monoData + startIdx);
+
+                  juce::FloatVectorOperations::copy(
+                      spectogram.getWritePointer(i), magnitudes.data(),
+                      numBins);
+                });
+
+  // old code single threaded calculation, but takes 3,56 times the duration
+  // int frameIndex = 0;
+  // for (int startIdx = 0;
+  //      startIdx + fftSize <= totalSamples && frameIndex < numFrames;
+  //      startIdx += hopSize) {
+  //   // Chunk audio into frames
+  //   frameMagnitudes = processSingleFrame(monoData + startIdx);
+  //
+  //   juce::FloatVectorOperations::copy(spectogram.getWritePointer(frameIndex),
+  //                                     frameMagnitudes.data(), numBins);
+  //   frameIndex++;
+  // }
+  auto endTime = std::chrono::high_resolution_clock::now();
+  auto durationSeconds =
+      std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime)
+          .count();
+
+  std::cout << "Duration of spectogram calculation: " << durationSeconds
+            << " ms" << std::endl;
 
   return spectogram;
 }
@@ -142,6 +170,12 @@ void SpectogramAnalyzer::normalizeVolume(
  */
 std::vector<float>
 SpectogramAnalyzer::processSingleFrame(const float *frameData) const {
+  // Thread local instances of fft and window
+  thread_local juce::dsp::FFT threadFFT(fftOrder);
+  thread_local juce::dsp::WindowingFunction<float> threadWindow(
+      static_cast<size_t>(fftSize), juce::dsp::WindowingFunction<float>::hann,
+      false);
+
   // Since the result of FFT is an array of complex numbers we need fftSize * 2
   // for real part and imaginary part
   std::vector<float> fftBuffer(fftSize * 2, 0.0f);
@@ -151,10 +185,10 @@ SpectogramAnalyzer::processSingleFrame(const float *frameData) const {
 
   // 2. apply hann windowing function to prevent spectral leakage (see docs/DSP
   // for further details)
-  window.multiplyWithWindowingTable(fftBuffer.data(), fftSize);
+  threadWindow.multiplyWithWindowingTable(fftBuffer.data(), fftSize);
 
   // 3. Apply Forward FFT
-  fft.performFrequencyOnlyForwardTransform(fftBuffer.data());
+  threadFFT.performFrequencyOnlyForwardTransform(fftBuffer.data());
 
   // 4. According to Nyquist sample theorem we only need the first half of the
   // frequencies (see docs/DSP for further details)

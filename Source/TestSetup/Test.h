@@ -54,6 +54,9 @@ private:
                            const juce::String &testName) const;
   void findMaximaSParameter() const;
   void findMaximaThresholdDeepLearning() const;
+  void findMaximaFloatGeneric(float AnalyzerConfig::*param,
+                              const juce::String &testName, const float minVal,
+                              const float maxVal) const;
 
   std::vector<GroundTruthLabel>
   parseGroundTruth(const juce::File &labelFile) const;

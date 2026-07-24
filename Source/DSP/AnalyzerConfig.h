@@ -27,6 +27,7 @@ struct AnalyzerConfig {
   int medianWindowSize = 19;
   float s = 0.6f;
   bool tuningShift = false;
+  float sptRatio = 3.8f;
 
   // 4. Classification
   float similarityThreshold = 0.3f;
@@ -46,6 +47,8 @@ struct AnalyzerConfig {
 
     similarityThreshold = 0.7f; // ML Vectors seem to work better with a higher
                                 // similarityThreshold!
+    useKeyEstimator = true;
+    profileType = KeyEstimator::ProfileType::KrumhanslKessler;
   }
 
   void setToDefaults() {
@@ -53,7 +56,7 @@ struct AnalyzerConfig {
     fftOrder = 12;
     fftSize = 4096;
     hopSize = 512;
-    medianWindowSize = 19;
+    medianWindowSize = 223;
     s = 0.6f;
     similarityThreshold = 0.3f;
     centerOriginPadding = false;
@@ -63,5 +66,6 @@ struct AnalyzerConfig {
     medianFilter = true;
     normalizeAudio = true;
     useKeyEstimator = false;
+    sptRatio = 3.8f;
   }
 };

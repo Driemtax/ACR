@@ -8,8 +8,18 @@
 
 class ChromaAnalyzer : public ChromaExtractorInterface {
 public:
+  struct FrequencyContribution {
+    float frequency;
+    float energy;
+
+    bool operator<(const FrequencyContribution &other) const {
+      return energy > other.energy;
+    }
+  };
+
   ChromaAnalyzer(float sampleRate, float fftSize, float s, int chromaRes,
-                 int medianWindow, bool medianFilter, bool tuningShift);
+                 int medianWindow, bool medianFilter, bool tuningShift,
+                 float ratio);
   ~ChromaAnalyzer() = default;
 
   void extractChroma(const juce::AudioBuffer<float> &spectogram,
@@ -50,6 +60,9 @@ private:
   void normalizeBins(juce::AudioBuffer<float> &outChroma);
   void applyMedianFilter(juce::AudioBuffer<float> &chroma);
   void scaleChroma(juce::AudioBuffer<float> &chroma) const;
+  void spectralPitchTracking(
+      juce::AudioBuffer<float> &chroma, int frameNum,
+      std::vector<std::vector<FrequencyContribution>> &binFreqs) const;
 
   std::vector<Peak> currentPeaks;
 
@@ -60,6 +73,8 @@ private:
   // Lookup table for harmonic weights since those are independent of
   // frequencies
   std::vector<float> harmonicWeights;
+
+  float sptRatio = 3.8f;
 
   int medianWindow = 5;
   bool medianFilter = true;
