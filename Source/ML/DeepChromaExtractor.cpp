@@ -190,7 +190,7 @@ void DeepChromaExtractor::extractChroma(
   }
 
   // Apply Median Filter
-  applyMedianFilter(chroma);
+  // applyMedianFilter(chroma);
 }
 
 void DeepChromaExtractor::applyMedianFilter(

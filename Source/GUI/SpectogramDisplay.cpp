@@ -2,6 +2,7 @@
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_graphics/juce_graphics.h"
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <iostream>
 #include <ostream>
@@ -115,6 +116,9 @@ void SpectogramDisplay::setSpectogramData(const juce::AudioBuffer<float> &data,
   if (data.hasBeenCleared())
     return;
 
+  // Duration calculations
+  auto startTime = std::chrono::high_resolution_clock::now();
+
   int numFrames = static_cast<int>(data.getNumChannels());
   int numBins = static_cast<int>(data.getNumSamples());
 
@@ -155,6 +159,9 @@ void SpectogramDisplay::setSpectogramData(const juce::AudioBuffer<float> &data,
   const float dynamicRange = 90.0f;
   float minDb = maxDb - dynamicRange;
 
+  juce::Image::BitmapData bitmapData(spectogramImage,
+                                     juce::Image::BitmapData::writeOnly);
+
   // draw image pixel by pixel
   for (int x = 0; x < numFrames; x++) {
     const auto &frame = data.getReadPointer(x);
@@ -177,15 +184,24 @@ void SpectogramDisplay::setSpectogramData(const juce::AudioBuffer<float> &data,
               .interpolatedWith(juce::Colours::white,
                                 std::max(0.0f, contrastValue * 2.0f - 1.0f));
 
+      int xStart = x * pixelsPerFrame;
       // draw this pixelsPerFrame times
       for (int px = 0; px < pixelsPerFrame; px++) {
         // the axis in graphics and audio spectogram are mirrored on the y-axis,
         // we need to mirror it back.
-        spectogramImage.setPixelAt(x * pixelsPerFrame + px, numBins - 1 - y,
-                                   pixelColour);
+        bitmapData.setPixelColour(xStart + px, numBins - 1 - y, pixelColour);
+
+        // spectogramImage.setPixelAt(x * pixelsPerFrame + px, numBins - 1 - y,
+        //                            pixelColour);
       }
     }
   }
+
+  auto finalTime = std::chrono::high_resolution_clock::now();
+  auto durationMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        finalTime - startTime)
+                        .count();
+  std::cout << "SpectoDisplay duration: " << durationMs << " ms" << std::endl;
 
   repaint();
 }

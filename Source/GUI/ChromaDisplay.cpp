@@ -5,6 +5,7 @@
 #include "juce_graphics/juce_graphics.h"
 #include "juce_gui_basics/juce_gui_basics.h"
 #include <algorithm>
+#include <chrono>
 #include <vector>
 
 //==============================================================================
@@ -288,6 +289,9 @@ void ChromaDisplay::setChromaData(
   if (chroma.hasBeenCleared())
     return;
 
+  // start time for time calculations
+  auto startTime = std::chrono::high_resolution_clock::now();
+
   currentSegments = segments;
   this->sampleRate = sampleRateInput;
   this->hopSize = hopSizeInput;
@@ -310,6 +314,8 @@ void ChromaDisplay::setChromaData(
   int imageHeight = numBins * pixelsPerBin;
 
   chromaImage = juce::Image(juce::Image::RGB, imageWidth, imageHeight, true);
+  juce::Image::BitmapData bitmapData(chromaImage,
+                                     juce::Image::BitmapData::writeOnly);
 
   // draw pixel by pixel
   for (int frame = 0; frame < numFrames; ++frame) {
@@ -332,18 +338,33 @@ void ChromaDisplay::setChromaData(
                                                          (val - 0.66f) * 3.0f);
       }
 
-      // draw whole bin at once
-      for (int py = 0; py < pixelsPerBin; ++py) {
-        // invert y-axis, so that low sounds (Bin 0) are at the bottom
+      // Access pixels directly via bitmap
+      int xStart = frame * pixelsPerFrame;
+      for (int py = 0; py < pixelsPerBin; py++) {
         int yPos = imageHeight - 1 - (bin * pixelsPerBin + py);
-
-        // draw every frame pixelsPerFrame times
         for (int px = 0; px < pixelsPerFrame; px++) {
-          chromaImage.setPixelAt(frame * pixelsPerFrame + px, yPos, pColour);
+          bitmapData.setPixelColour(xStart + px, yPos, pColour);
         }
       }
+
+      // // draw whole bin at once
+      // for (int py = 0; py < pixelsPerBin; ++py) {
+      //   // invert y-axis, so that low sounds (Bin 0) are at the bottom
+      //   int yPos = imageHeight - 1 - (bin * pixelsPerBin + py);
+
+      //   // draw every frame pixelsPerFrame times
+      //   for (int px = 0; px < pixelsPerFrame; px++) {
+      //     chromaImage.setPixelAt(frame * pixelsPerFrame + px, yPos, pColour);
+      //   }
+      // }
     }
   }
+  auto finalTime = std::chrono::high_resolution_clock::now();
+  auto durationMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        finalTime - startTime)
+                        .count();
+  std::cout << "Duration of ChromaDisplay: " << durationMs << " ms"
+            << std::endl;
 
   repaint();
 }
