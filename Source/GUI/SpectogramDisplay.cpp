@@ -4,8 +4,11 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <execution>
 #include <iostream>
+#include <numeric>
 #include <ostream>
+#include <vector>
 
 static void drawLabelsYAxis(juce::Graphics &g, const juce::Image &img,
                             int width, int height,
@@ -162,40 +165,48 @@ void SpectogramDisplay::setSpectogramData(const juce::AudioBuffer<float> &data,
   juce::Image::BitmapData bitmapData(spectogramImage,
                                      juce::Image::BitmapData::writeOnly);
 
+  std::vector<int> frameIndices(numFrames);
+  std::iota(frameIndices.begin(), frameIndices.end(), 0);
+
   // draw image pixel by pixel
-  for (int x = 0; x < numFrames; x++) {
-    const auto &frame = data.getReadPointer(x);
-    for (int y = 0; y < numBins; y++) {
-      float val = frame[y];
+  std::for_each(std::execution::par, frameIndices.begin(), frameIndices.end(),
+                [&](int frame) {
+                  for (int y = 0; y < numBins; y++) {
+                    float val = data.getSample(frame, y);
 
-      // clipping prevents negative values after normalizing.
-      if (val < minDb)
-        val = minDb;
+                    // clipping prevents negative values after normalizing.
+                    if (val < minDb)
+                      val = minDb;
 
-      float normalizedValue = (val - minDb) / dynamicRange;
+                    float normalizedValue = (val - minDb) / dynamicRange;
 
-      // This is to dampen the noise. Everything near to 1 stays there
-      float contrastValue = std::pow(normalizedValue, 2.0f);
+                    // This is to dampen the noise. Everything near to 1 stays
+                    // there
+                    float contrastValue = std::pow(normalizedValue, 2.0f);
 
-      juce::Colour pixelColour =
-          juce::Colours::black
-              .interpolatedWith(juce::Colours::cyan,
+                    juce::Colour pixelColour =
+                        juce::Colours::black
+                            .interpolatedWith(
+                                juce::Colours::cyan,
                                 std::min(1.0f, contrastValue * 2.0f))
-              .interpolatedWith(juce::Colours::white,
+                            .interpolatedWith(
+                                juce::Colours::white,
                                 std::max(0.0f, contrastValue * 2.0f - 1.0f));
 
-      int xStart = x * pixelsPerFrame;
-      // draw this pixelsPerFrame times
-      for (int px = 0; px < pixelsPerFrame; px++) {
-        // the axis in graphics and audio spectogram are mirrored on the y-axis,
-        // we need to mirror it back.
-        bitmapData.setPixelColour(xStart + px, numBins - 1 - y, pixelColour);
+                    int xStart = frame * pixelsPerFrame;
+                    // draw this pixelsPerFrame times
+                    for (int px = 0; px < pixelsPerFrame; px++) {
+                      // the axis in graphics and audio spectogram are mirrored
+                      // on the y-axis, we need to mirror it back.
+                      bitmapData.setPixelColour(xStart + px, numBins - 1 - y,
+                                                pixelColour);
 
-        // spectogramImage.setPixelAt(x * pixelsPerFrame + px, numBins - 1 - y,
-        //                            pixelColour);
-      }
-    }
-  }
+                      // spectogramImage.setPixelAt(x * pixelsPerFrame + px,
+                      // numBins - 1 - y,
+                      //                            pixelColour);
+                    }
+                  }
+                });
 
   auto finalTime = std::chrono::high_resolution_clock::now();
   auto durationMs = std::chrono::duration_cast<std::chrono::milliseconds>(

@@ -6,6 +6,8 @@
 #include "juce_gui_basics/juce_gui_basics.h"
 #include <algorithm>
 #include <chrono>
+#include <execution>
+#include <numeric>
 #include <vector>
 
 //==============================================================================
@@ -317,48 +319,60 @@ void ChromaDisplay::setChromaData(
   juce::Image::BitmapData bitmapData(chromaImage,
                                      juce::Image::BitmapData::writeOnly);
 
+  // Multithread here
+  std::vector<int> frameIndices(numFrames);
+  std::iota(frameIndices.begin(), frameIndices.end(), 0);
+
+  std::for_each(std::execution::par, frameIndices.begin(), frameIndices.end(),
+                [&](int frame) {
+                  int xStart = frame * pixelsPerFrame;
+
+                  for (int bin = 0; bin < numBins; ++bin) {
+                    float val = chroma.getSample(frame, bin);
+
+                    // clip value between 0.0 and 1.0
+                    val = juce::jlimit(0.0f, 1.0f, val);
+
+                    // Interpolation: Black (0) -> Red (0.33) -> Yellow (0.66)
+                    // -> White (1)
+                    juce::Colour pColour;
+                    if (val < 0.33f) {
+                      pColour = juce::Colours::black.interpolatedWith(
+                          juce::Colours::red, val * 3.0f);
+                    } else if (val < 0.66f) {
+                      pColour = juce::Colours::red.interpolatedWith(
+                          juce::Colours::yellow, (val - 0.33f) * 3.0f);
+                    } else {
+                      pColour = juce::Colours::yellow.interpolatedWith(
+                          juce::Colours::white, (val - 0.66f) * 3.0f);
+                    }
+
+                    // Access pixels directly via bitmap
+                    for (int py = 0; py < pixelsPerBin; py++) {
+                      int yPos = imageHeight - 1 - (bin * pixelsPerBin + py);
+                      for (int px = 0; px < pixelsPerFrame; px++) {
+                        bitmapData.setPixelColour(xStart + px, yPos, pColour);
+                      }
+                    }
+
+                    // // draw whole bin at once
+                    // for (int py = 0; py < pixelsPerBin; ++py) {
+                    //   // invert y-axis, so that low sounds (Bin 0) are at the
+                    //   bottom int yPos = imageHeight - 1 - (bin * pixelsPerBin
+                    //   + py);
+
+                    //   // draw every frame pixelsPerFrame times
+                    //   for (int px = 0; px < pixelsPerFrame; px++) {
+                    //     chromaImage.setPixelAt(frame * pixelsPerFrame + px,
+                    //     yPos, pColour);
+                    //   }
+                    // }
+                  }
+                });
+
   // draw pixel by pixel
-  for (int frame = 0; frame < numFrames; ++frame) {
-    for (int bin = 0; bin < numBins; ++bin) {
-      float val = chroma.getSample(frame, bin);
-
-      // clip value between 0.0 and 1.0
-      val = juce::jlimit(0.0f, 1.0f, val);
-
-      // Interpolation: Black (0) -> Red (0.33) -> Yellow (0.66) -> White (1)
-      juce::Colour pColour;
-      if (val < 0.33f) {
-        pColour = juce::Colours::black.interpolatedWith(juce::Colours::red,
-                                                        val * 3.0f);
-      } else if (val < 0.66f) {
-        pColour = juce::Colours::red.interpolatedWith(juce::Colours::yellow,
-                                                      (val - 0.33f) * 3.0f);
-      } else {
-        pColour = juce::Colours::yellow.interpolatedWith(juce::Colours::white,
-                                                         (val - 0.66f) * 3.0f);
-      }
-
-      // Access pixels directly via bitmap
-      int xStart = frame * pixelsPerFrame;
-      for (int py = 0; py < pixelsPerBin; py++) {
-        int yPos = imageHeight - 1 - (bin * pixelsPerBin + py);
-        for (int px = 0; px < pixelsPerFrame; px++) {
-          bitmapData.setPixelColour(xStart + px, yPos, pColour);
-        }
-      }
-
-      // // draw whole bin at once
-      // for (int py = 0; py < pixelsPerBin; ++py) {
-      //   // invert y-axis, so that low sounds (Bin 0) are at the bottom
-      //   int yPos = imageHeight - 1 - (bin * pixelsPerBin + py);
-
-      //   // draw every frame pixelsPerFrame times
-      //   for (int px = 0; px < pixelsPerFrame; px++) {
-      //     chromaImage.setPixelAt(frame * pixelsPerFrame + px, yPos, pColour);
-      //   }
-      // }
-    }
-  }
+  // for (int frame = 0; frame < numFrames; ++frame) {
+  // }
   auto finalTime = std::chrono::high_resolution_clock::now();
   auto durationMs = std::chrono::duration_cast<std::chrono::milliseconds>(
                         finalTime - startTime)
