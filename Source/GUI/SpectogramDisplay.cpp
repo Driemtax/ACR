@@ -169,8 +169,8 @@ void SpectogramDisplay::setSpectogramData(const juce::AudioBuffer<float> &data,
   std::iota(frameIndices.begin(), frameIndices.end(), 0);
 
   // draw image pixel by pixel
-  std::for_each(std::execution::par, frameIndices.begin(), frameIndices.end(),
-                [&](int frame) {
+  std::for_each(std::execution::par_unseq, frameIndices.begin(),
+                frameIndices.end(), [&](int frame) {
                   for (int y = 0; y < numBins; y++) {
                     float val = data.getSample(frame, y);
 
@@ -201,9 +201,9 @@ void SpectogramDisplay::setSpectogramData(const juce::AudioBuffer<float> &data,
                       bitmapData.setPixelColour(xStart + px, numBins - 1 - y,
                                                 pixelColour);
 
-                      // spectogramImage.setPixelAt(x * pixelsPerFrame + px,
-                      // numBins - 1 - y,
-                      //                            pixelColour);
+                      // spectogramImage.setPixelAt(frame * pixelsPerFrame + px,
+                      //  numBins - 1 - y,
+                      //                             pixelColour);
                     }
                   }
                 });

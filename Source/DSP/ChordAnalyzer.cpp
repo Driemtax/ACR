@@ -7,7 +7,12 @@
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_audio_formats/juce_audio_formats.h"
 #include "juce_core/juce_core.h"
+#include <algorithm>
+#include <chrono>
+#include <execution>
 #include <memory>
+#include <numeric>
+#include <vector>
 
 ChordAnalyzer::ChordAnalyzer(AnalyzerConfig &config)
     : classifier(config.similarityThreshold), spectoAnalyzer(config),
@@ -33,6 +38,8 @@ ChordAnalyzer::AnalysisResult
 ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
   AnalysisResult result;
 
+  auto startTime = std::chrono::high_resolution_clock::now();
+
   // 1. Read in audio file
   juce::AudioFormatManager formatManager;
   formatManager.registerBasicFormats();
@@ -46,6 +53,12 @@ ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
   const double targetSampleRate = 44100.0;
 
   juce::AudioBuffer<float> buffer;
+
+  auto midTime = std::chrono::high_resolution_clock::now();
+  auto durationFirst =
+      std::chrono::duration_cast<std::chrono::milliseconds>(midTime - startTime)
+          .count();
+  std::cout << "Time until resampling: " << durationFirst << " ms" << std::endl;
 
   // If the file is not at sample rate 44,1kHz we need to resample!
   if (sourceSampleRate != targetSampleRate) {
@@ -61,18 +74,35 @@ ChordAnalyzer::runAnalysis(const juce::File &audioFile) {
     reader->read(&tempBuffer, 0, static_cast<int>(reader->lengthInSamples), 0,
                  true, true);
 
+    std::vector<int> channelIndices(reader->numChannels);
+    std::iota(channelIndices.begin(), channelIndices.end(), 0);
+
+    std::for_each(std::execution::par, channelIndices.begin(),
+                  channelIndices.end(), [&](int ch) {
+                    juce::LagrangeInterpolator interpolator;
+                    interpolator.process(ratio, tempBuffer.getReadPointer(ch),
+                                         buffer.getWritePointer(ch),
+                                         targetLength);
+                  });
+
     // JUCE Interpolator for resampling every channel
-    for (int ch = 0; ch < reader->numChannels; ch++) {
-      juce::WindowedSincInterpolator interpolator;
-      interpolator.process(ratio, tempBuffer.getReadPointer(ch),
-                           buffer.getWritePointer(ch), targetLength);
-    }
+    // for (int ch = 0; ch < reader->numChannels; ch++) {
+    // }
   } else {
     buffer.setSize(reader->numChannels,
                    static_cast<int>(reader->lengthInSamples));
     reader->read(&buffer, 0, static_cast<int>(reader->lengthInSamples), 0, true,
                  true);
   }
+
+  auto finalTime = std::chrono::high_resolution_clock::now();
+  auto durationFull = std::chrono::duration_cast<std::chrono::milliseconds>(
+                          finalTime - startTime)
+                          .count();
+  auto durationResampling = durationFull - durationFirst;
+  std::cout << "Time for Resampling: " << durationResampling << " ms"
+            << std::endl;
+  std::cout << "Full Time until Specto: " << durationFull << " ms" << std::endl;
 
   // 2. Create Spectogram
   auto spectogramData = spectoAnalyzer.processFullFile(buffer);

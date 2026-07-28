@@ -5,10 +5,13 @@
 #include "onnxruntime_c_api.h"
 #include "onnxruntime_cxx_api.h"
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <execution>
 #include <memory>
+#include <numeric>
 #include <vector>
 
 DeepChromaExtractor::DeepChromaExtractor(int binSize, int medianSize)
@@ -115,9 +118,6 @@ void DeepChromaExtractor::extractChroma(
     }
   }
 
-  // TODO: Export Spectogram in 2D Array structure in Json, same structure as in
-  // Scripts/*_specto.json
-
   // =================================================================================
   // 2. ONNX Inference Preparation
   // =================================================================================
@@ -149,6 +149,8 @@ void DeepChromaExtractor::extractChroma(
   // =================================================================================
   // 3. Sliding Window Inference
   // =================================================================================
+  auto startTime = std::chrono::high_resolution_clock::now();
+
   for (int t = 0; t < numFrames; t++) {
     // Reset the tensor with zeros (handles padding at start and end
     // automatically)
@@ -188,6 +190,12 @@ void DeepChromaExtractor::extractChroma(
       chromaWrite[i] = outputData[i];
     }
   }
+
+  auto finalTime = std::chrono::high_resolution_clock::now();
+  auto durationMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        finalTime - startTime)
+                        .count();
+  std::cout << "Modell duration: " << durationMs << " ms" << std::endl;
 
   // Apply Median Filter
   // applyMedianFilter(chroma);
