@@ -43,7 +43,6 @@ https://github.com/user-attachments/assets/33f0dd74-2a0f-4c5f-82a2-4f8ae0a2fa25
   - HPCP: harmonic weighting `s`, temporal median filter (on/off and window size), tuning shift with chroma resolution (12, 24 or 36 bins)
   - Key estimation (on/off) with Krumhansl-Kessler or Temperley key profiles
   - In Deep Chroma mode, the settings required by the model are applied automatically and the HPCP-only parameters are locked
-- **Test** button to start the offline evaluation (see [Testing & Evaluation](#testing--evaluation))
 
 | Full Spectogram | Full Chromagram |
 | :---: | :---: |
@@ -101,40 +100,6 @@ Detailed notes on the individual pipeline stages can be found in [Docs/](Docs/).
 - Standard fret markers (dots at 3, 5, 7, 9, 12, 15, 17, 19, 21)
 - Chord tones rendered as labeled ellipses on the correct string/fret positions
 - Three label layers: current chord, next chord and scale (major or minor pentatonic)
-
----
-
-### Testing & Evaluation
-
-A decoupled offline testing module for batch-processing audio datasets:
-
-- Compares frame-level classifications against ground truth label files
-- Exports aggregated accuracy metrics as JSON for evaluation in Python
-- Used to benchmark HPCP vs. Deep Chroma accuracy across the test corpus
-- Parameter sweeps (similarity threshold, `s`, median window size, combined `s` × threshold grid) to find the best configuration
-
-<!-- TODO: Example output table or chart from evaluation -->
-
-**Running the evaluation**
-
-1. Put the dataset into `Testfiles/` in the project root (not included in this repository). The `.wav` files can be placed directly in `Testfiles/` or in a subfolder per test case. Each `<name>.wav` needs a `<name>_label.txt`, which must always be in the `Testfiles/` root. Each line of a label file holds a chord onset in seconds and the chord name; a chord lasts until the next onset:
-   ```
-   0.023219955,A Maj
-   3.793560091,D Maj
-   ```
-   Chord names must exactly match the classifier's names: `<Root> Maj`, `<Root> Min` or `<Root>5`, using sharps (`C#`, not `Db`).
-2. Select the test cases and parameter sweeps in `Test::runAllTests()` (`Source/TestSetup/Test.cpp`) by commenting them in or out.
-3. Click **Test** in the Analysis View. The results are written to `TestResults/ThesisTests/results_<testName>.json` and contain the overall accuracy as well as per-track and frame-level results.
-
-The test module locates `Testfiles/` relative to the executable, so the binary has to stay at `<build dir>/ACR_artefacts/<Config>/ACR.exe`.
-
-**Python scripts**
-
-`Scripts/` contains Python tools for the evaluation and for porting the Deep Chroma model. They require Python 3.9.13, because madmom's dependencies don't install on newer versions (see [Scripts/README.md](Scripts/README.md)):
-
-- `generate_filterbank.py`: extracts the weights of madmom's logarithmic filterbank (used in `Source/ML/FilterbankWeights.h`)
-- `verification.py`: compares a chromagram exported by ACR with the output of madmom's `DeepChromaProcessor` (86.11 % agreement at a tolerance of 1e-4). To export a chromagram, set `exportForPython = true` in `ChordAnalyzer::runAnalysis`; the JSON file is written to the desktop.
-- `plot_*.py`: charts of the evaluation results
 
 ---
 
